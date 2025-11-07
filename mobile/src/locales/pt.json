@@ -1,0 +1,224 @@
+{
+  "common": {
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "delete": "Excluir",
+    "edit": "Editar",
+    "close": "Fechar",
+    "loading": "Carregando...",
+    "error": "Erro",
+    "success": "Sucesso",
+    "warning": "Aviso",
+    "back": "Voltar",
+    "next": "Próximo",
+    "submit": "Enviar",
+    "search": "Pesquisar",
+    "filter": "Filtrar",
+    "hazardTypes": {
+      "all": "Todos",
+      "armed_conflict": "Conflito Armado",
+      "conflict": "Conflito",
+      "protest_riot": "Protesto/Motim",
+      "protest": "Protesto",
+      "checkpoint": "Posto de Controle",
+      "road_damage": "Dano à Estrada",
+      "natural_disaster": "Desastre Natural",
+      "flood": "Inundação",
+      "landslide": "Deslizamento",
+      "safe_haven": "Refúgio Seguro",
+      "other": "Outro"
+    },
+    "timeAgo": {
+      "justNow": "Agora mesmo",
+      "hoursAgo": "{{count}} horas atrás",
+      "daysAgo": "{{count}} dias atrás"
+    }
+  },
+  "tabs": {
+    "map": "Mapa",
+    "route": "Rota",
+    "report": "Relatório",
+    "news": "Notícias",
+    "profile": "Perfil"
+  },
+  "profile": {
+    "title": "Minha Página",
+    "myActivity": "Minha Atividade",
+    "myReports": "Meus Relatórios",
+    "savedPlaces": "Lugares Salvos",
+    "recentRoutes": "Rotas Recentes",
+    "settings": "Configurações",
+    "environmentSettings": "Configurações",
+    "reportsCount": "{{count}} relatórios",
+    "placesCount": "{{count}} lugares",
+    "routesCount": "{{count}} rotas",
+    "stats": {
+      "reportsSubmitted": "Relatórios",
+      "reportsVerified": "Verificados",
+      "routesCalculated": "Rotas"
+    },
+    "loadError": "Não foi possível carregar o perfil"
+  },
+  "settings": {
+    "title": "Configurações",
+    "general": "Geral",
+    "notifications": "Notificações",
+    "language": "Idioma",
+    "autoSync": "Sincronização Automática",
+    "data": "Dados",
+    "exportData": "Exportar Dados",
+    "clearCache": "Limpar Cache",
+    "resetStats": "Redefinir Estatísticas",
+    "deleteAllData": "Excluir Todos os Dados",
+    "info": "Informações",
+    "version": "Versão",
+    "developer": "Desenvolvedor",
+    "contact": "Contato",
+    "languages": {
+      "ko": "한국어",
+      "en": "English",
+      "es": "Español",
+      "fr": "Français",
+      "pt": "Português",
+      "sw": "Kiswahili"
+    },
+    "languageSelect": {
+      "title": "Selecionar Idioma",
+      "message": "Escolha seu idioma preferido"
+    },
+    "exportDataConfirm": {
+      "title": "Exportar Dados",
+      "message": "Exportar todos os dados em formato JSON."
+    },
+    "clearCacheConfirm": {
+      "title": "Limpar Cache",
+      "message": "Deseja excluir dados temporários?\n\nLugares salvos, perfil e relatórios serão preservados."
+    },
+    "resetStatsConfirm": {
+      "title": "Redefinir Estatísticas",
+      "message": "Deseja redefinir as estatísticas de atividade?\n\nEsta ação não pode ser desfeita."
+    },
+    "deleteAllConfirm": {
+      "title": "⚠️ Excluir Todos os Dados",
+      "message": "Deseja excluir todos os dados?\n\nPerfil, lugares salvos, relatórios, histórico de rotas e todos os outros dados serão excluídos.\n\nEsta ação não pode ser desfeita.",
+      "confirmTitle": "Tem certeza?",
+      "confirmMessage": "Todos os dados serão excluídos permanentemente."
+    },
+    "alerts": {
+      "exportError": "Falha ao exportar dados.",
+      "cacheCleared": "Cache foi limpo.",
+      "statsReset": "Estatísticas foram redefinidas.",
+      "statsResetError": "Falha ao redefinir estatísticas.",
+      "dataDeleted": "Todos os dados foram excluídos.",
+      "dataDeleteError": "Falha ao excluir dados."
+    }
+  },
+  "map": {
+    "title": "Mapa",
+    "search": "Pesquisar lugares",
+    "myLocation": "Minha Localização",
+    "hazards": "Perigos",
+    "landmarks": "Pontos de Referência",
+    "layers": "Camadas",
+    "showHazards": "Mostrar Perigos",
+    "showLandmarks": "Mostrar Pontos de Referência"
+  },
+  "route": {
+    "title": "Planejamento de Rota",
+    "start": "Início",
+    "destination": "Destino",
+    "startPlaceholder": "Selecione o local de início",
+    "destinationPlaceholder": "Selecione o destino",
+    "transportation": "Transporte",
+    "calculating": "Calculando rotas...",
+    "comparison": "Comparação de Rotas",
+    "calculate": "Calcular Rota",
+    "routeOptions": "Opções de Rota",
+    "compareRoutes": "Compare e selecione entre rotas seguras, rápidas e equilibradas",
+    "routesFound": "{{count}} rotas",
+    "distance": "Distância",
+    "duration": "Duração",
+    "riskScore": "Risco",
+    "selectRoute": "Selecionar Rota",
+    "sortByTime": "Por Tempo",
+    "sortByDistance": "Por Distância",
+    "sortBySafety": "Por Segurança",
+    "noRouteTitle": "Aviso",
+    "noRouteMessage": "Nenhuma rota encontrada.",
+    "calculationError": "Não foi possível calcular a rota.",
+    "noRouteFound": "Nenhuma rota encontrada",
+    "noRouteDescription": "Não há rota conectada entre início e destino.\nSelecione locais diferentes.",
+    "infoMessage": "Selecione início e destino\npara calcular rotas automaticamente.",
+    "types": {
+      "safe": "Segura",
+      "fast": "Rápida",
+      "balanced": "Equilibrada",
+      "alternative": "Alternativa"
+    }
+  },
+  "report": {
+    "title": "Reportar Perigo",
+    "type": "Tipo de Perigo",
+    "description": "Descrição",
+    "location": "Localização",
+    "photo": "Adicionar Foto",
+    "submit": "Enviar Relatório",
+    "step1Title": "Que tipo de perigo?",
+    "step1Subtitle": "Selecione o tipo de perigo correspondente",
+    "step2Title": "Onde ocorreu?",
+    "step2Subtitle": "Selecione a localização exata",
+    "currentLocation": "Localização Atual",
+    "reportLocation": "Localização do Relatório",
+    "mapHint": "Toque no mapa para selecionar a localização",
+    "accuracy": "Precisão: ±{{meters}}m",
+    "step3Title": "Insira informações detalhadas",
+    "additionalInfo": "Informações Adicionais",
+    "descriptionLabel": "Descrição (Opcional)",
+    "descriptionPlaceholder": "Forneça uma descrição detalhada da situação de perigo...",
+    "yes": "Sim",
+    "no": "Não",
+    "numberPlaceholder": "Digite o número",
+    "textPlaceholder": "Digite...",
+    "previous": "Anterior",
+    "locationError": "Não foi possível obter a localização atual.",
+    "duplicateTitle": "Relatório Duplicado",
+    "duplicateMessage": "Existem {{count}} relatórios semelhantes nas proximidades. Deseja continuar?",
+    "continue": "Continuar",
+    "selectTypeWarning": "Selecione um tipo de perigo.",
+    "saveSuccess": "Salvamento Concluído",
+    "draftSaved": "Rascunho foi salvo.",
+    "draftSaveError": "Falha ao salvar rascunho.",
+    "submitError": "Falha ao enviar relatório.",
+    "types": {
+      "conflict": "Conflito",
+      "protest": "Protesto",
+      "flood": "Inundação",
+      "landslide": "Deslizamento",
+      "other": "Outro"
+    }
+  },
+  "news": {
+    "title": "Notícias",
+    "hazardNews": "Notícias de Perigos",
+    "latest": "Mais Recentes",
+    "viewOnMap": "Ver no Mapa",
+    "source": "Fonte",
+    "riskLevel": "Nível de Risco",
+    "loading": "Carregando informações de perigo...",
+    "emptyAll": "Nenhuma informação de perigo disponível",
+    "emptyFiltered": "Nenhuma informação de perigo {{type}} disponível",
+    "occurred": "Ocorreu",
+    "warningMessage": "Esta é uma área de perigo {{type}}. Tenha cuidado.",
+    "riskScoreLabel": "Risco: {{score}}"
+  },
+  "errors": {
+    "network": "Não é possível conectar ao servidor. Verifique sua conexão de rede.",
+    "timeout": "Tempo limite de resposta do servidor. Tente novamente.",
+    "unauthorized": "Autenticação expirada. Faça login novamente.",
+    "notFound": "Informação solicitada não encontrada.",
+    "tooManyRequests": "Muitas solicitações. Tente novamente mais tarde.",
+    "serverError": "Erro do servidor. Tente novamente mais tarde."
+  },
+  "copyright": "© 2025 KOICA. Todos os direitos reservados."
+}

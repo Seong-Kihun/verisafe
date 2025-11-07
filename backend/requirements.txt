@@ -1,0 +1,56 @@
+# FastAPI & Server - Python 3.13 호환 최신 버전
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+
+# Database - Python 3.13 호환 최신 버전
+sqlalchemy>=2.0.36
+alembic>=1.14.0
+psycopg2-binary>=2.9.9  # PostgreSQL 드라이버 (Python 3.13 호환)
+geoalchemy2>=0.15.0     # PostGIS 지원
+
+# Authentication - Python 3.13 호환 최신 버전
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+python-multipart>=0.0.18
+
+# Validation - Python 3.13 호환 최신 버전
+pydantic>=2.10.0
+pydantic-settings>=2.7.0
+
+# HTTP Client
+httpx>=0.28.0
+
+# Environment
+python-dotenv>=1.0.1
+
+# Graph & Spatial - Python 3.13 호환 최신 버전
+networkx>=3.4.0
+osmnx>=2.0.0
+shapely>=2.0.6
+
+# Redis (caching) - Python 3.13 호환 최신 버전
+redis>=5.2.0
+hiredis>=3.1.0  # Redis 성능 향상
+
+# Utils
+python-dateutil>=2.9.0
+
+# AI & Image Processing (Phase 3-4) - Python 3.13 호환 버전
+# 버전 제약 없이 최신 호환 버전 자동 설치
+torch>=2.9.0
+torchvision>=0.24.0
+opencv-python>=4.10.0
+numpy>=2.1.0
+scikit-learn>=1.5.0
+pillow>=11.0.0
+
+# NLP & Transformers (Phase 3)
+transformers>=4.36.0  # BERT, DistilBERT 등 NLP 모델
+sentencepiece>=0.1.99  # 토크나이저
+sacremoses>=0.0.53  # 텍스트 전처리
+
+# Development - Python 3.13 호환 최신 버전
+pytest>=8.3.0
+pytest-asyncio>=0.24.0
+black>=24.0.0
+flake8>=7.1.0

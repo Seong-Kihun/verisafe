@@ -1,0 +1,224 @@
+{
+  "common": {
+    "save": "Hifadhi",
+    "cancel": "Ghairi",
+    "confirm": "Thibitisha",
+    "delete": "Futa",
+    "edit": "Hariri",
+    "close": "Funga",
+    "loading": "Inapakia...",
+    "error": "Hitilafu",
+    "success": "Mafanikio",
+    "warning": "Onyo",
+    "back": "Rudi",
+    "next": "Ifuatayo",
+    "submit": "Wasilisha",
+    "search": "Tafuta",
+    "filter": "Chuja",
+    "hazardTypes": {
+      "all": "Zote",
+      "armed_conflict": "Migogoro ya Silaha",
+      "conflict": "Mgogoro",
+      "protest_riot": "Maandamano/Ghasia",
+      "protest": "Maandamano",
+      "checkpoint": "Kituo cha Ukaguzi",
+      "road_damage": "Uharibifu wa Barabara",
+      "natural_disaster": "Janga la Asili",
+      "flood": "Mafuriko",
+      "landslide": "Mporomoko wa Ardhi",
+      "safe_haven": "Makazi Salama",
+      "other": "Nyingine"
+    },
+    "timeAgo": {
+      "justNow": "Sasa hivi",
+      "hoursAgo": "masaa {{count}} iliyopita",
+      "daysAgo": "siku {{count}} zilizopita"
+    }
+  },
+  "tabs": {
+    "map": "Ramani",
+    "route": "Njia",
+    "report": "Ripoti",
+    "news": "Habari",
+    "profile": "Wasifu"
+  },
+  "profile": {
+    "title": "Ukurasa Wangu",
+    "myActivity": "Shughuli Zangu",
+    "myReports": "Ripoti Zangu",
+    "savedPlaces": "Maeneo Yaliyohifadhiwa",
+    "recentRoutes": "Njia za Hivi Karibuni",
+    "settings": "Mipangilio",
+    "environmentSettings": "Mipangilio",
+    "reportsCount": "ripoti {{count}}",
+    "placesCount": "maeneo {{count}}",
+    "routesCount": "njia {{count}}",
+    "stats": {
+      "reportsSubmitted": "Ripoti",
+      "reportsVerified": "Zilizothibitishwa",
+      "routesCalculated": "Njia"
+    },
+    "loadError": "Imeshindwa kupakia wasifu"
+  },
+  "settings": {
+    "title": "Mipangilio",
+    "general": "Jumla",
+    "notifications": "Arifa",
+    "language": "Lugha",
+    "autoSync": "Ulandanishi wa Kiotomatiki",
+    "data": "Data",
+    "exportData": "Hamisha Data",
+    "clearCache": "Futa Kache",
+    "resetStats": "Weka Upya Takwimu",
+    "deleteAllData": "Futa Data Zote",
+    "info": "Maelezo",
+    "version": "Toleo",
+    "developer": "Msanidi",
+    "contact": "Mawasiliano",
+    "languages": {
+      "ko": "한국어",
+      "en": "English",
+      "es": "Español",
+      "fr": "Français",
+      "pt": "Português",
+      "sw": "Kiswahili"
+    },
+    "languageSelect": {
+      "title": "Chagua Lugha",
+      "message": "Chagua lugha unayopendelea"
+    },
+    "exportDataConfirm": {
+      "title": "Hamisha Data",
+      "message": "Hamisha data zote katika muundo wa JSON."
+    },
+    "clearCacheConfirm": {
+      "title": "Futa Kache",
+      "message": "Je, unataka kufuta data ya muda?\n\nMaeneo yaliyohifadhiwa, wasifu, na ripoti zitahifadhiwa."
+    },
+    "resetStatsConfirm": {
+      "title": "Weka Upya Takwimu",
+      "message": "Je, unataka kuweka upya takwimu za shughuli?\n\nKitendo hiki hakiwezi kutendeka tena."
+    },
+    "deleteAllConfirm": {
+      "title": "⚠️ Futa Data Zote",
+      "message": "Je, unataka kufuta data zote?\n\nWasifu, maeneo yaliyohifadhiwa, ripoti, historia ya njia, na data zote zingine zitafutwa.\n\nKitendo hiki hakiwezi kutendeka tena.",
+      "confirmTitle": "Una uhakika?",
+      "confirmMessage": "Data zote zitafutwa kabisa."
+    },
+    "alerts": {
+      "exportError": "Imeshindwa kuhamisha data.",
+      "cacheCleared": "Kache imefutwa.",
+      "statsReset": "Takwimu zimewekwa upya.",
+      "statsResetError": "Imeshindwa kuweka upya takwimu.",
+      "dataDeleted": "Data zote zimefutwa.",
+      "dataDeleteError": "Imeshindwa kufuta data."
+    }
+  },
+  "map": {
+    "title": "Ramani",
+    "search": "Tafuta maeneo",
+    "myLocation": "Mahali Pangu",
+    "hazards": "Hatari",
+    "landmarks": "Alama za Ardhi",
+    "layers": "Safu",
+    "showHazards": "Onyesha Hatari",
+    "showLandmarks": "Onyesha Alama za Ardhi"
+  },
+  "route": {
+    "title": "Upangaji wa Njia",
+    "start": "Mwanzo",
+    "destination": "Marudio",
+    "startPlaceholder": "Chagua mahali pa kuanzia",
+    "destinationPlaceholder": "Chagua marudio",
+    "transportation": "Usafiri",
+    "calculating": "Inahesabu njia...",
+    "comparison": "Ulinganisho wa Njia",
+    "calculate": "Hesabu Njia",
+    "routeOptions": "Chaguzi za Njia",
+    "compareRoutes": "Linganisha na chagua kutoka kwa njia salama, za haraka, na za usawa",
+    "routesFound": "njia {{count}}",
+    "distance": "Umbali",
+    "duration": "Muda",
+    "riskScore": "Hatari",
+    "selectRoute": "Chagua Njia",
+    "sortByTime": "Kwa Muda",
+    "sortByDistance": "Kwa Umbali",
+    "sortBySafety": "Kwa Usalama",
+    "noRouteTitle": "Arifa",
+    "noRouteMessage": "Hakuna njia iliyopatikana.",
+    "calculationError": "Imeshindwa kuhesabu njia.",
+    "noRouteFound": "Hakuna njia iliyopatikana",
+    "noRouteDescription": "Hakuna njia inayounganisha mwanzo na marudio.\nTafadhali chagua maeneo tofauti.",
+    "infoMessage": "Chagua mwanzo na marudio\nili kuhesabu njia kiotomatiki.",
+    "types": {
+      "safe": "Salama",
+      "fast": "Haraka",
+      "balanced": "Ya Usawa",
+      "alternative": "Mbadala"
+    }
+  },
+  "report": {
+    "title": "Ripoti Hatari",
+    "type": "Aina ya Hatari",
+    "description": "Maelezo",
+    "location": "Mahali",
+    "photo": "Ongeza Picha",
+    "submit": "Wasilisha Ripoti",
+    "step1Title": "Ni aina gani ya hatari?",
+    "step1Subtitle": "Tafadhali chagua aina ya hatari inayofaa",
+    "step2Title": "Ilitokea wapi?",
+    "step2Subtitle": "Tafadhali chagua mahali halisi",
+    "currentLocation": "Mahali pa Sasa",
+    "reportLocation": "Mahali pa Ripoti",
+    "mapHint": "Gusa ramani ili kuchagua mahali",
+    "accuracy": "Usahihi: ±{{meters}}m",
+    "step3Title": "Tafadhali ingiza maelezo ya kina",
+    "additionalInfo": "Maelezo ya Ziada",
+    "descriptionLabel": "Maelezo (Si Lazima)",
+    "descriptionPlaceholder": "Tafadhali toa maelezo ya kina ya hali ya hatari...",
+    "yes": "Ndiyo",
+    "no": "Hapana",
+    "numberPlaceholder": "Ingiza namba",
+    "textPlaceholder": "Ingiza...",
+    "previous": "Iliyotangulia",
+    "locationError": "Imeshindwa kupata mahali pa sasa.",
+    "duplicateTitle": "Ripoti Nakala",
+    "duplicateMessage": "Kuna ripoti {{count}} zinazofanana karibu. Je, unataka kuendelea?",
+    "continue": "Endelea",
+    "selectTypeWarning": "Tafadhali chagua aina ya hatari.",
+    "saveSuccess": "Imehifadhiwa",
+    "draftSaved": "Rasimu imehifadhiwa.",
+    "draftSaveError": "Imeshindwa kuhifadhi rasimu.",
+    "submitError": "Imeshindwa kuwasilisha ripoti.",
+    "types": {
+      "conflict": "Mgogoro",
+      "protest": "Maandamano",
+      "flood": "Mafuriko",
+      "landslide": "Mporomoko wa Ardhi",
+      "other": "Nyingine"
+    }
+  },
+  "news": {
+    "title": "Habari",
+    "hazardNews": "Habari za Hatari",
+    "latest": "Za Hivi Karibuni",
+    "viewOnMap": "Tazama kwenye Ramani",
+    "source": "Chanzo",
+    "riskLevel": "Kiwango cha Hatari",
+    "loading": "Inapakia taarifa za hatari...",
+    "emptyAll": "Hakuna taarifa za hatari zinazopatikana",
+    "emptyFiltered": "Hakuna taarifa za hatari {{type}} zinazopatikana",
+    "occurred": "Ilitokea",
+    "warningMessage": "Hii ni eneo la hatari {{type}}. Tafadhali kuwa mwangalifu.",
+    "riskScoreLabel": "Hatari: {{score}}"
+  },
+  "errors": {
+    "network": "Haiwezi kuunganisha kwenye seva. Tafadhali angalia muunganisho wako wa mtandao.",
+    "timeout": "Muda wa jibu la seva umeisha. Tafadhali jaribu tena.",
+    "unauthorized": "Uthibitisho umeisha. Tafadhali ingia tena.",
+    "notFound": "Taarifa iliyoombwa haipatikani.",
+    "tooManyRequests": "Maombi mengi sana. Tafadhali jaribu tena baadaye.",
+    "serverError": "Hitilafu ya seva imetokea. Tafadhali jaribu tena baadaye."
+  },
+  "copyright": "© 2025 KOICA. Haki zote zimehifadhiwa."
+}

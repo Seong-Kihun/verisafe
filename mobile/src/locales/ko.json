@@ -1,0 +1,224 @@
+{
+  "common": {
+    "save": "저장",
+    "cancel": "취소",
+    "confirm": "확인",
+    "delete": "삭제",
+    "edit": "수정",
+    "close": "닫기",
+    "loading": "로딩 중...",
+    "error": "오류",
+    "success": "성공",
+    "warning": "경고",
+    "back": "뒤로",
+    "next": "다음",
+    "submit": "제출",
+    "search": "검색",
+    "filter": "필터",
+    "hazardTypes": {
+      "all": "전체",
+      "armed_conflict": "무력충돌",
+      "conflict": "충돌",
+      "protest_riot": "시위/폭동",
+      "protest": "시위",
+      "checkpoint": "검문소",
+      "road_damage": "도로 파손",
+      "natural_disaster": "자연재해",
+      "flood": "홍수",
+      "landslide": "산사태",
+      "safe_haven": "안전 거점",
+      "other": "기타"
+    },
+    "timeAgo": {
+      "justNow": "방금 전",
+      "hoursAgo": "{{count}}시간 전",
+      "daysAgo": "{{count}}일 전"
+    }
+  },
+  "tabs": {
+    "map": "지도",
+    "route": "경로",
+    "report": "제보",
+    "news": "뉴스",
+    "profile": "내정보"
+  },
+  "profile": {
+    "title": "내페이지",
+    "myActivity": "나의 활동",
+    "myReports": "나의 제보",
+    "savedPlaces": "즐겨찾기 장소",
+    "recentRoutes": "최근 경로",
+    "settings": "설정",
+    "environmentSettings": "환경설정",
+    "reportsCount": "{{count}}개의 제보",
+    "placesCount": "{{count}}개의 장소",
+    "routesCount": "{{count}}개의 경로",
+    "stats": {
+      "reportsSubmitted": "제보 수",
+      "reportsVerified": "검증됨",
+      "routesCalculated": "경로 계산"
+    },
+    "loadError": "프로필을 불러올 수 없습니다"
+  },
+  "settings": {
+    "title": "환경설정",
+    "general": "일반",
+    "notifications": "알림",
+    "language": "언어",
+    "autoSync": "자동 동기화",
+    "data": "데이터",
+    "exportData": "데이터 내보내기",
+    "clearCache": "캐시 삭제",
+    "resetStats": "통계 초기화",
+    "deleteAllData": "모든 데이터 삭제",
+    "info": "정보",
+    "version": "버전",
+    "developer": "개발",
+    "contact": "문의",
+    "languages": {
+      "ko": "한국어",
+      "en": "English",
+      "es": "Español",
+      "fr": "Français",
+      "pt": "Português",
+      "sw": "Kiswahili"
+    },
+    "languageSelect": {
+      "title": "언어 선택",
+      "message": "사용할 언어를 선택하세요"
+    },
+    "exportDataConfirm": {
+      "title": "데이터 내보내기",
+      "message": "모든 데이터를 JSON 형식으로 내보냅니다."
+    },
+    "clearCacheConfirm": {
+      "title": "캐시 삭제",
+      "message": "임시 데이터를 삭제하시겠습니까?\n\n즐겨찾기, 프로필, 제보 기록은 유지됩니다."
+    },
+    "resetStatsConfirm": {
+      "title": "통계 초기화",
+      "message": "활동 통계를 초기화하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다."
+    },
+    "deleteAllConfirm": {
+      "title": "⚠️ 모든 데이터 삭제",
+      "message": "모든 데이터를 삭제하시겠습니까?\n\n프로필, 즐겨찾기, 제보 기록, 경로 기록 등 모든 데이터가 삭제됩니다.\n\n이 작업은 되돌릴 수 없습니다.",
+      "confirmTitle": "정말 삭제하시겠습니까?",
+      "confirmMessage": "모든 데이터가 영구적으로 삭제됩니다."
+    },
+    "alerts": {
+      "exportError": "데이터 내보내기에 실패했습니다.",
+      "cacheCleared": "캐시가 삭제되었습니다.",
+      "statsReset": "통계가 초기화되었습니다.",
+      "statsResetError": "통계 초기화에 실패했습니다.",
+      "dataDeleted": "모든 데이터가 삭제되었습니다.",
+      "dataDeleteError": "데이터 삭제에 실패했습니다."
+    }
+  },
+  "map": {
+    "title": "지도",
+    "search": "장소 검색",
+    "myLocation": "내 위치",
+    "hazards": "위험 정보",
+    "landmarks": "주요 장소",
+    "layers": "레이어",
+    "showHazards": "위험 정보 표시",
+    "showLandmarks": "주요 장소 표시"
+  },
+  "route": {
+    "title": "경로 계획",
+    "start": "출발지",
+    "destination": "목적지",
+    "startPlaceholder": "출발지를 선택하세요",
+    "destinationPlaceholder": "목적지를 선택하세요",
+    "transportation": "이동 수단",
+    "calculating": "경로를 계산하는 중...",
+    "comparison": "경로 비교",
+    "calculate": "경로 계산",
+    "routeOptions": "다양한 경로 옵션",
+    "compareRoutes": "안전, 빠름, 균형 등 여러 경로를 비교하고 선택하세요",
+    "routesFound": "{{count}}개의 경로",
+    "distance": "거리",
+    "duration": "시간",
+    "riskScore": "위험도",
+    "selectRoute": "경로 선택",
+    "sortByTime": "시간순",
+    "sortByDistance": "거리순",
+    "sortBySafety": "안전순",
+    "noRouteTitle": "알림",
+    "noRouteMessage": "경로를 찾을 수 없습니다.",
+    "calculationError": "경로를 계산할 수 없습니다.",
+    "noRouteFound": "경로를 찾을 수 없습니다",
+    "noRouteDescription": "출발지와 목적지 사이에 연결된 경로가 없습니다.\n다른 위치를 선택해보세요.",
+    "infoMessage": "출발지와 목적지를 선택하면\n자동으로 경로를 계산합니다.",
+    "types": {
+      "safe": "안전",
+      "fast": "빠름",
+      "balanced": "균형",
+      "alternative": "대안"
+    }
+  },
+  "report": {
+    "title": "위험 제보",
+    "type": "위험 유형",
+    "description": "상세 설명",
+    "location": "위치",
+    "photo": "사진 추가",
+    "submit": "제보하기",
+    "step1Title": "어떤 위험인가요?",
+    "step1Subtitle": "해당하는 위험 유형을 선택해주세요",
+    "step2Title": "어디서 발생했나요?",
+    "step2Subtitle": "정확한 위치를 선택해주세요",
+    "currentLocation": "현재 위치",
+    "reportLocation": "제보 위치",
+    "mapHint": "지도를 탭하여 위치 선택",
+    "accuracy": "정확도: ±{{meters}}m",
+    "step3Title": "상세 정보를 입력해주세요",
+    "additionalInfo": "추가 정보",
+    "descriptionLabel": "설명 (선택)",
+    "descriptionPlaceholder": "위험 상황에 대한 상세한 설명을 입력해주세요...",
+    "yes": "예",
+    "no": "아니오",
+    "numberPlaceholder": "숫자 입력",
+    "textPlaceholder": "입력...",
+    "previous": "이전",
+    "locationError": "현재 위치를 가져올 수 없습니다.",
+    "duplicateTitle": "중복 제보",
+    "duplicateMessage": "인근에 {{count}}건의 유사한 제보가 있습니다. 계속하시겠습니까?",
+    "continue": "계속",
+    "selectTypeWarning": "위험 유형을 선택해주세요.",
+    "saveSuccess": "저장 완료",
+    "draftSaved": "임시 저장되었습니다.",
+    "draftSaveError": "임시 저장에 실패했습니다.",
+    "submitError": "제보 등록에 실패했습니다.",
+    "types": {
+      "conflict": "충돌",
+      "protest": "시위",
+      "flood": "홍수",
+      "landslide": "산사태",
+      "other": "기타"
+    }
+  },
+  "news": {
+    "title": "뉴스",
+    "hazardNews": "위험 정보 뉴스",
+    "latest": "최신 소식",
+    "viewOnMap": "지도에서 보기",
+    "source": "출처",
+    "riskLevel": "위험도",
+    "loading": "위험 정보를 불러오는 중...",
+    "emptyAll": "위험 정보가 없습니다",
+    "emptyFiltered": "{{type}} 관련 위험 정보가 없습니다",
+    "occurred": "발생",
+    "warningMessage": "{{type}} 위험 지역입니다. 주의하세요.",
+    "riskScoreLabel": "위험도: {{score}}점"
+  },
+  "errors": {
+    "network": "서버에 연결할 수 없습니다. 네트워크 연결을 확인해주세요.",
+    "timeout": "서버 응답 시간이 초과되었습니다. 다시 시도해주세요.",
+    "unauthorized": "인증이 만료되었습니다. 다시 로그인해주세요.",
+    "notFound": "요청한 정보를 찾을 수 없습니다.",
+    "tooManyRequests": "요청이 너무 많습니다. 잠시 후 다시 시도해주세요.",
+    "serverError": "서버에 일시적인 문제가 발생했습니다. 잠시 후 다시 시도해주세요."
+  },
+  "copyright": "© 2025 KOICA. All rights reserved."
+}

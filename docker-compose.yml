@@ -1,0 +1,59 @@
+services:
+  postgres:
+    image: postgis/postgis:14-3.3
+    container_name: verisafe-postgres
+    environment:
+      POSTGRES_USER: verisafe_user
+      POSTGRES_PASSWORD: verisafe_pass_2025
+      POSTGRES_DB: verisafe_db
+      POSTGRES_HOST_AUTH_METHOD: trust  # 개발용 (운영 시 변경 필요)
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/init_sql:/docker-entrypoint-initdb.d  # 초기화 SQL 스크립트
+    networks:
+      - verisafe_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U verisafe_user -d verisafe_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: verisafe-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - verisafe_network
+    command: redis-server --appendonly yes --requirepass verisafe_redis_2025
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: verisafe-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@verisafe.com
+      PGADMIN_DEFAULT_PASSWORD: admin2025
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    networks:
+      - verisafe_network
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  verisafe_network:
+    driver: bridge

@@ -1,0 +1,224 @@
+{
+  "common": {
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "confirm": "Confirmer",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "close": "Fermer",
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "success": "Succès",
+    "warning": "Avertissement",
+    "back": "Retour",
+    "next": "Suivant",
+    "submit": "Soumettre",
+    "search": "Rechercher",
+    "filter": "Filtre",
+    "hazardTypes": {
+      "all": "Tous",
+      "armed_conflict": "Conflit Armé",
+      "conflict": "Conflit",
+      "protest_riot": "Manifestation/Émeute",
+      "protest": "Manifestation",
+      "checkpoint": "Point de Contrôle",
+      "road_damage": "Dommages Routiers",
+      "natural_disaster": "Catastrophe Naturelle",
+      "flood": "Inondation",
+      "landslide": "Glissement de Terrain",
+      "safe_haven": "Refuge Sûr",
+      "other": "Autre"
+    },
+    "timeAgo": {
+      "justNow": "À l'instant",
+      "hoursAgo": "Il y a {{count}} heures",
+      "daysAgo": "Il y a {{count}} jours"
+    }
+  },
+  "tabs": {
+    "map": "Carte",
+    "route": "Itinéraire",
+    "report": "Signaler",
+    "news": "Actualités",
+    "profile": "Profil"
+  },
+  "profile": {
+    "title": "Ma Page",
+    "myActivity": "Mon Activité",
+    "myReports": "Mes Rapports",
+    "savedPlaces": "Lieux Enregistrés",
+    "recentRoutes": "Itinéraires Récents",
+    "settings": "Paramètres",
+    "environmentSettings": "Configuration",
+    "reportsCount": "{{count}} rapports",
+    "placesCount": "{{count}} lieux",
+    "routesCount": "{{count}} itinéraires",
+    "stats": {
+      "reportsSubmitted": "Rapports",
+      "reportsVerified": "Vérifiés",
+      "routesCalculated": "Itinéraires"
+    },
+    "loadError": "Impossible de charger le profil"
+  },
+  "settings": {
+    "title": "Configuration",
+    "general": "Général",
+    "notifications": "Notifications",
+    "language": "Langue",
+    "autoSync": "Synchronisation Automatique",
+    "data": "Données",
+    "exportData": "Exporter les Données",
+    "clearCache": "Vider le Cache",
+    "resetStats": "Réinitialiser les Statistiques",
+    "deleteAllData": "Supprimer Toutes les Données",
+    "info": "Information",
+    "version": "Version",
+    "developer": "Développeur",
+    "contact": "Contact",
+    "languages": {
+      "ko": "한국어",
+      "en": "English",
+      "es": "Español",
+      "fr": "Français",
+      "pt": "Português",
+      "sw": "Kiswahili"
+    },
+    "languageSelect": {
+      "title": "Sélectionner la Langue",
+      "message": "Choisissez votre langue préférée"
+    },
+    "exportDataConfirm": {
+      "title": "Exporter les Données",
+      "message": "Exporter toutes les données au format JSON."
+    },
+    "clearCacheConfirm": {
+      "title": "Vider le Cache",
+      "message": "Voulez-vous supprimer les données temporaires?\n\nLes lieux enregistrés, le profil et les rapports seront conservés."
+    },
+    "resetStatsConfirm": {
+      "title": "Réinitialiser les Statistiques",
+      "message": "Voulez-vous réinitialiser les statistiques d'activité?\n\nCette action ne peut pas être annulée."
+    },
+    "deleteAllConfirm": {
+      "title": "⚠️ Supprimer Toutes les Données",
+      "message": "Voulez-vous supprimer toutes les données?\n\nProfil, lieux enregistrés, rapports, historique des itinéraires et toutes les autres données seront supprimés.\n\nCette action ne peut pas être annulée.",
+      "confirmTitle": "Êtes-vous sûr?",
+      "confirmMessage": "Toutes les données seront définitivement supprimées."
+    },
+    "alerts": {
+      "exportError": "Échec de l'exportation des données.",
+      "cacheCleared": "Le cache a été vidé.",
+      "statsReset": "Les statistiques ont été réinitialisées.",
+      "statsResetError": "Échec de la réinitialisation des statistiques.",
+      "dataDeleted": "Toutes les données ont été supprimées.",
+      "dataDeleteError": "Échec de la suppression des données."
+    }
+  },
+  "map": {
+    "title": "Carte",
+    "search": "Rechercher des lieux",
+    "myLocation": "Ma Position",
+    "hazards": "Dangers",
+    "landmarks": "Points d'Intérêt",
+    "layers": "Couches",
+    "showHazards": "Afficher les Dangers",
+    "showLandmarks": "Afficher les Points d'Intérêt"
+  },
+  "route": {
+    "title": "Planification d'Itinéraire",
+    "start": "Départ",
+    "destination": "Destination",
+    "startPlaceholder": "Sélectionnez le point de départ",
+    "destinationPlaceholder": "Sélectionnez la destination",
+    "transportation": "Transport",
+    "calculating": "Calcul des itinéraires...",
+    "comparison": "Comparaison d'Itinéraires",
+    "calculate": "Calculer l'Itinéraire",
+    "routeOptions": "Options d'Itinéraire",
+    "compareRoutes": "Comparez et sélectionnez parmi les itinéraires sûrs, rapides et équilibrés",
+    "routesFound": "{{count}} itinéraires",
+    "distance": "Distance",
+    "duration": "Durée",
+    "riskScore": "Risque",
+    "selectRoute": "Sélectionner l'Itinéraire",
+    "sortByTime": "Par Temps",
+    "sortByDistance": "Par Distance",
+    "sortBySafety": "Par Sécurité",
+    "noRouteTitle": "Avis",
+    "noRouteMessage": "Aucun itinéraire trouvé.",
+    "calculationError": "Impossible de calculer l'itinéraire.",
+    "noRouteFound": "Aucun itinéraire trouvé",
+    "noRouteDescription": "Aucun itinéraire connecté entre le départ et la destination.\nVeuillez sélectionner d'autres emplacements.",
+    "infoMessage": "Sélectionnez le départ et la destination\npour calculer automatiquement les itinéraires.",
+    "types": {
+      "safe": "Sûr",
+      "fast": "Rapide",
+      "balanced": "Équilibré",
+      "alternative": "Alternative"
+    }
+  },
+  "report": {
+    "title": "Signaler un Danger",
+    "type": "Type de Danger",
+    "description": "Description",
+    "location": "Localisation",
+    "photo": "Ajouter une Photo",
+    "submit": "Soumettre le Rapport",
+    "step1Title": "Quel type de danger?",
+    "step1Subtitle": "Veuillez sélectionner le type de danger correspondant",
+    "step2Title": "Où est-ce arrivé?",
+    "step2Subtitle": "Veuillez sélectionner l'emplacement exact",
+    "currentLocation": "Emplacement Actuel",
+    "reportLocation": "Emplacement du Rapport",
+    "mapHint": "Appuyez sur la carte pour sélectionner l'emplacement",
+    "accuracy": "Précision: ±{{meters}}m",
+    "step3Title": "Veuillez saisir des informations détaillées",
+    "additionalInfo": "Informations Supplémentaires",
+    "descriptionLabel": "Description (Optionnel)",
+    "descriptionPlaceholder": "Veuillez fournir une description détaillée de la situation de danger...",
+    "yes": "Oui",
+    "no": "Non",
+    "numberPlaceholder": "Entrer un nombre",
+    "textPlaceholder": "Entrer...",
+    "previous": "Précédent",
+    "locationError": "Impossible d'obtenir l'emplacement actuel.",
+    "duplicateTitle": "Rapport en Double",
+    "duplicateMessage": "Il y a {{count}} rapports similaires à proximité. Voulez-vous continuer?",
+    "continue": "Continuer",
+    "selectTypeWarning": "Veuillez sélectionner un type de danger.",
+    "saveSuccess": "Enregistrement Terminé",
+    "draftSaved": "Le brouillon a été enregistré.",
+    "draftSaveError": "Échec de l'enregistrement du brouillon.",
+    "submitError": "Échec de la soumission du rapport.",
+    "types": {
+      "conflict": "Conflit",
+      "protest": "Manifestation",
+      "flood": "Inondation",
+      "landslide": "Glissement de Terrain",
+      "other": "Autre"
+    }
+  },
+  "news": {
+    "title": "Actualités",
+    "hazardNews": "Actualités des Dangers",
+    "latest": "Dernières",
+    "viewOnMap": "Voir sur la Carte",
+    "source": "Source",
+    "riskLevel": "Niveau de Risque",
+    "loading": "Chargement des informations de danger...",
+    "emptyAll": "Aucune information de danger disponible",
+    "emptyFiltered": "Aucune information de danger de {{type}} disponible",
+    "occurred": "S'est produit",
+    "warningMessage": "Ceci est une zone de danger de {{type}}. Soyez prudent.",
+    "riskScoreLabel": "Risque: {{score}}"
+  },
+  "errors": {
+    "network": "Impossible de se connecter au serveur. Veuillez vérifier votre connexion réseau.",
+    "timeout": "Délai de réponse du serveur dépassé. Veuillez réessayer.",
+    "unauthorized": "Authentification expirée. Veuillez vous reconnecter.",
+    "notFound": "Information demandée non trouvée.",
+    "tooManyRequests": "Trop de requêtes. Veuillez réessayer plus tard.",
+    "serverError": "Erreur du serveur. Veuillez réessayer plus tard."
+  },
+  "copyright": "© 2025 KOICA. Tous droits réservés."
+}

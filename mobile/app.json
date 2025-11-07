@@ -1,0 +1,46 @@
+{
+  "expo": {
+    "name": "VeriSafe",
+    "slug": "verisafe",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.verisafe.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "VeriSafe는 현재 위치를 표시하고 안전한 경로를 제공하기 위해 위치 정보를 사용합니다.",
+        "NSLocationAlwaysUsageDescription": "VeriSafe는 현재 위치를 표시하고 안전한 경로를 제공하기 위해 위치 정보를 사용합니다.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "VeriSafe는 현재 위치를 표시하고 안전한 경로를 제공하기 위해 위치 정보를 사용합니다."
+      },
+      "config": {
+        "googleMapsApiKey": ""
+      }
+    },
+    "android": {
+      "package": "com.verisafe.app",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": ""
+        }
+      }
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "VeriSafe는 현재 위치를 표시하고 안전한 경로를 제공하기 위해 위치 정보를 사용합니다."
+        }
+      ]
+    ]
+  }
+}

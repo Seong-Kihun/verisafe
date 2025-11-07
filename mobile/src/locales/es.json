@@ -1,0 +1,224 @@
+{
+  "common": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "close": "Cerrar",
+    "loading": "Cargando...",
+    "error": "Error",
+    "success": "Éxito",
+    "warning": "Advertencia",
+    "back": "Atrás",
+    "next": "Siguiente",
+    "submit": "Enviar",
+    "search": "Buscar",
+    "filter": "Filtro",
+    "hazardTypes": {
+      "all": "Todo",
+      "armed_conflict": "Conflicto Armado",
+      "conflict": "Conflicto",
+      "protest_riot": "Protesta/Disturbio",
+      "protest": "Protesta",
+      "checkpoint": "Punto de Control",
+      "road_damage": "Daño en la Carretera",
+      "natural_disaster": "Desastre Natural",
+      "flood": "Inundación",
+      "landslide": "Deslizamiento de Tierra",
+      "safe_haven": "Refugio Seguro",
+      "other": "Otro"
+    },
+    "timeAgo": {
+      "justNow": "Justo ahora",
+      "hoursAgo": "Hace {{count}} horas",
+      "daysAgo": "Hace {{count}} días"
+    }
+  },
+  "tabs": {
+    "map": "Mapa",
+    "route": "Ruta",
+    "report": "Reportar",
+    "news": "Noticias",
+    "profile": "Perfil"
+  },
+  "profile": {
+    "title": "Mi Página",
+    "myActivity": "Mi Actividad",
+    "myReports": "Mis Informes",
+    "savedPlaces": "Lugares Guardados",
+    "recentRoutes": "Rutas Recientes",
+    "settings": "Ajustes",
+    "environmentSettings": "Configuración",
+    "reportsCount": "{{count}} informes",
+    "placesCount": "{{count}} lugares",
+    "routesCount": "{{count}} rutas",
+    "stats": {
+      "reportsSubmitted": "Informes",
+      "reportsVerified": "Verificados",
+      "routesCalculated": "Rutas"
+    },
+    "loadError": "No se puede cargar el perfil"
+  },
+  "settings": {
+    "title": "Configuración",
+    "general": "General",
+    "notifications": "Notificaciones",
+    "language": "Idioma",
+    "autoSync": "Sincronización Automática",
+    "data": "Datos",
+    "exportData": "Exportar Datos",
+    "clearCache": "Limpiar Caché",
+    "resetStats": "Restablecer Estadísticas",
+    "deleteAllData": "Eliminar Todos los Datos",
+    "info": "Información",
+    "version": "Versión",
+    "developer": "Desarrollador",
+    "contact": "Contacto",
+    "languages": {
+      "ko": "한국어",
+      "en": "English",
+      "es": "Español",
+      "fr": "Français",
+      "pt": "Português",
+      "sw": "Kiswahili"
+    },
+    "languageSelect": {
+      "title": "Seleccionar Idioma",
+      "message": "Elige tu idioma preferido"
+    },
+    "exportDataConfirm": {
+      "title": "Exportar Datos",
+      "message": "Exportar todos los datos en formato JSON."
+    },
+    "clearCacheConfirm": {
+      "title": "Limpiar Caché",
+      "message": "¿Deseas eliminar los datos temporales?\n\nLos lugares guardados, perfil e informes se conservarán."
+    },
+    "resetStatsConfirm": {
+      "title": "Restablecer Estadísticas",
+      "message": "¿Deseas restablecer las estadísticas de actividad?\n\nEsta acción no se puede deshacer."
+    },
+    "deleteAllConfirm": {
+      "title": "⚠️ Eliminar Todos los Datos",
+      "message": "¿Deseas eliminar todos los datos?\n\nPerfil, lugares guardados, informes, historial de rutas y todos los demás datos se eliminarán.\n\nEsta acción no se puede deshacer.",
+      "confirmTitle": "¿Estás seguro?",
+      "confirmMessage": "Todos los datos se eliminarán permanentemente."
+    },
+    "alerts": {
+      "exportError": "Error al exportar datos.",
+      "cacheCleared": "La caché se ha limpiado.",
+      "statsReset": "Las estadísticas se han restablecido.",
+      "statsResetError": "Error al restablecer estadísticas.",
+      "dataDeleted": "Todos los datos han sido eliminados.",
+      "dataDeleteError": "Error al eliminar datos."
+    }
+  },
+  "map": {
+    "title": "Mapa",
+    "search": "Buscar lugares",
+    "myLocation": "Mi Ubicación",
+    "hazards": "Peligros",
+    "landmarks": "Lugares de Interés",
+    "layers": "Capas",
+    "showHazards": "Mostrar Peligros",
+    "showLandmarks": "Mostrar Lugares de Interés"
+  },
+  "route": {
+    "title": "Planificación de Ruta",
+    "start": "Salida",
+    "destination": "Destino",
+    "startPlaceholder": "Selecciona punto de salida",
+    "destinationPlaceholder": "Selecciona destino",
+    "transportation": "Transporte",
+    "calculating": "Calculando rutas...",
+    "comparison": "Comparación de Rutas",
+    "calculate": "Calcular Ruta",
+    "routeOptions": "Opciones de Ruta",
+    "compareRoutes": "Compara y selecciona entre rutas seguras, rápidas y equilibradas",
+    "routesFound": "{{count}} rutas",
+    "distance": "Distancia",
+    "duration": "Duración",
+    "riskScore": "Riesgo",
+    "selectRoute": "Seleccionar Ruta",
+    "sortByTime": "Por Tiempo",
+    "sortByDistance": "Por Distancia",
+    "sortBySafety": "Por Seguridad",
+    "noRouteTitle": "Aviso",
+    "noRouteMessage": "No se encontró ruta.",
+    "calculationError": "No se puede calcular la ruta.",
+    "noRouteFound": "No se encontró ruta",
+    "noRouteDescription": "No hay ruta conectada entre salida y destino.\nPor favor, selecciona otras ubicaciones.",
+    "infoMessage": "Selecciona salida y destino\npara calcular rutas automáticamente.",
+    "types": {
+      "safe": "Segura",
+      "fast": "Rápida",
+      "balanced": "Equilibrada",
+      "alternative": "Alternativa"
+    }
+  },
+  "report": {
+    "title": "Reportar Peligro",
+    "type": "Tipo de Peligro",
+    "description": "Descripción",
+    "location": "Ubicación",
+    "photo": "Agregar Foto",
+    "submit": "Enviar Informe",
+    "step1Title": "¿Qué tipo de peligro?",
+    "step1Subtitle": "Por favor, selecciona el tipo de peligro correspondiente",
+    "step2Title": "¿Dónde ocurrió?",
+    "step2Subtitle": "Por favor, selecciona la ubicación exacta",
+    "currentLocation": "Ubicación Actual",
+    "reportLocation": "Ubicación del Reporte",
+    "mapHint": "Toca el mapa para seleccionar la ubicación",
+    "accuracy": "Precisión: ±{{meters}}m",
+    "step3Title": "Por favor, ingresa información detallada",
+    "additionalInfo": "Información Adicional",
+    "descriptionLabel": "Descripción (Opcional)",
+    "descriptionPlaceholder": "Por favor, proporciona una descripción detallada de la situación de peligro...",
+    "yes": "Sí",
+    "no": "No",
+    "numberPlaceholder": "Ingresar número",
+    "textPlaceholder": "Ingresar...",
+    "previous": "Anterior",
+    "locationError": "No se puede obtener la ubicación actual.",
+    "duplicateTitle": "Reporte Duplicado",
+    "duplicateMessage": "Hay {{count}} reportes similares cerca. ¿Deseas continuar?",
+    "continue": "Continuar",
+    "selectTypeWarning": "Por favor, selecciona un tipo de peligro.",
+    "saveSuccess": "Guardado Completo",
+    "draftSaved": "El borrador ha sido guardado.",
+    "draftSaveError": "Error al guardar el borrador.",
+    "submitError": "Error al enviar el reporte.",
+    "types": {
+      "conflict": "Conflicto",
+      "protest": "Protesta",
+      "flood": "Inundación",
+      "landslide": "Deslizamiento de Tierra",
+      "other": "Otro"
+    }
+  },
+  "news": {
+    "title": "Noticias",
+    "hazardNews": "Noticias de Peligros",
+    "latest": "Últimas",
+    "viewOnMap": "Ver en el Mapa",
+    "source": "Fuente",
+    "riskLevel": "Nivel de Riesgo",
+    "loading": "Cargando información de peligros...",
+    "emptyAll": "No hay información de peligros disponible",
+    "emptyFiltered": "No hay información de peligros de {{type}} disponible",
+    "occurred": "Ocurrió",
+    "warningMessage": "Esta es un área de peligro de {{type}}. Por favor, tenga cuidado.",
+    "riskScoreLabel": "Riesgo: {{score}}"
+  },
+  "errors": {
+    "network": "No se puede conectar al servidor. Por favor, verifica tu conexión de red.",
+    "timeout": "Tiempo de espera del servidor agotado. Por favor, inténtalo de nuevo.",
+    "unauthorized": "Autenticación expirada. Por favor, inicia sesión de nuevo.",
+    "notFound": "Información solicitada no encontrada.",
+    "tooManyRequests": "Demasiadas solicitudes. Por favor, inténtalo más tarde.",
+    "serverError": "Error del servidor. Por favor, inténtalo más tarde."
+  },
+  "copyright": "© 2025 KOICA. Todos los derechos reservados."
+}

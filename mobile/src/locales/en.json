@@ -1,0 +1,224 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "warning": "Warning",
+    "back": "Back",
+    "next": "Next",
+    "submit": "Submit",
+    "search": "Search",
+    "filter": "Filter",
+    "hazardTypes": {
+      "all": "All",
+      "armed_conflict": "Armed Conflict",
+      "conflict": "Conflict",
+      "protest_riot": "Protest/Riot",
+      "protest": "Protest",
+      "checkpoint": "Checkpoint",
+      "road_damage": "Road Damage",
+      "natural_disaster": "Natural Disaster",
+      "flood": "Flood",
+      "landslide": "Landslide",
+      "safe_haven": "Safe Haven",
+      "other": "Other"
+    },
+    "timeAgo": {
+      "justNow": "Just now",
+      "hoursAgo": "{{count}} hours ago",
+      "daysAgo": "{{count}} days ago"
+    }
+  },
+  "tabs": {
+    "map": "Map",
+    "route": "Route",
+    "report": "Report",
+    "news": "News",
+    "profile": "Profile"
+  },
+  "profile": {
+    "title": "My Page",
+    "myActivity": "My Activity",
+    "myReports": "My Reports",
+    "savedPlaces": "Saved Places",
+    "recentRoutes": "Recent Routes",
+    "settings": "Settings",
+    "environmentSettings": "Settings",
+    "reportsCount": "{{count}} reports",
+    "placesCount": "{{count}} places",
+    "routesCount": "{{count}} routes",
+    "stats": {
+      "reportsSubmitted": "Reports",
+      "reportsVerified": "Verified",
+      "routesCalculated": "Routes"
+    },
+    "loadError": "Unable to load profile"
+  },
+  "settings": {
+    "title": "Settings",
+    "general": "General",
+    "notifications": "Notifications",
+    "language": "Language",
+    "autoSync": "Auto Sync",
+    "data": "Data",
+    "exportData": "Export Data",
+    "clearCache": "Clear Cache",
+    "resetStats": "Reset Statistics",
+    "deleteAllData": "Delete All Data",
+    "info": "Information",
+    "version": "Version",
+    "developer": "Developer",
+    "contact": "Contact",
+    "languages": {
+      "ko": "한국어",
+      "en": "English",
+      "es": "Español",
+      "fr": "Français",
+      "pt": "Português",
+      "sw": "Kiswahili"
+    },
+    "languageSelect": {
+      "title": "Select Language",
+      "message": "Choose your preferred language"
+    },
+    "exportDataConfirm": {
+      "title": "Export Data",
+      "message": "Export all data in JSON format."
+    },
+    "clearCacheConfirm": {
+      "title": "Clear Cache",
+      "message": "Do you want to delete temporary data?\n\nSaved places, profile, and reports will be preserved."
+    },
+    "resetStatsConfirm": {
+      "title": "Reset Statistics",
+      "message": "Do you want to reset activity statistics?\n\nThis action cannot be undone."
+    },
+    "deleteAllConfirm": {
+      "title": "⚠️ Delete All Data",
+      "message": "Do you want to delete all data?\n\nProfile, saved places, reports, route history, and all other data will be deleted.\n\nThis action cannot be undone.",
+      "confirmTitle": "Are you sure?",
+      "confirmMessage": "All data will be permanently deleted."
+    },
+    "alerts": {
+      "exportError": "Failed to export data.",
+      "cacheCleared": "Cache has been cleared.",
+      "statsReset": "Statistics have been reset.",
+      "statsResetError": "Failed to reset statistics.",
+      "dataDeleted": "All data has been deleted.",
+      "dataDeleteError": "Failed to delete data."
+    }
+  },
+  "map": {
+    "title": "Map",
+    "search": "Search places",
+    "myLocation": "My Location",
+    "hazards": "Hazards",
+    "landmarks": "Landmarks",
+    "layers": "Layers",
+    "showHazards": "Show Hazards",
+    "showLandmarks": "Show Landmarks"
+  },
+  "route": {
+    "title": "Route Planning",
+    "start": "Start",
+    "destination": "Destination",
+    "startPlaceholder": "Select start location",
+    "destinationPlaceholder": "Select destination",
+    "transportation": "Transportation",
+    "calculating": "Calculating routes...",
+    "comparison": "Route Comparison",
+    "calculate": "Calculate Route",
+    "routeOptions": "Route Options",
+    "compareRoutes": "Compare and select from safe, fast, balanced routes",
+    "routesFound": "{{count}} routes",
+    "distance": "Distance",
+    "duration": "Duration",
+    "riskScore": "Risk",
+    "selectRoute": "Select Route",
+    "sortByTime": "By Time",
+    "sortByDistance": "By Distance",
+    "sortBySafety": "By Safety",
+    "noRouteTitle": "Notice",
+    "noRouteMessage": "No route found.",
+    "calculationError": "Unable to calculate route.",
+    "noRouteFound": "No route found",
+    "noRouteDescription": "No connected route between start and destination.\nPlease select different locations.",
+    "infoMessage": "Select start and destination\nto automatically calculate routes.",
+    "types": {
+      "safe": "Safe",
+      "fast": "Fast",
+      "balanced": "Balanced",
+      "alternative": "Alternative"
+    }
+  },
+  "report": {
+    "title": "Report Hazard",
+    "type": "Hazard Type",
+    "description": "Description",
+    "location": "Location",
+    "photo": "Add Photo",
+    "submit": "Submit Report",
+    "step1Title": "What type of hazard?",
+    "step1Subtitle": "Please select the corresponding hazard type",
+    "step2Title": "Where did it occur?",
+    "step2Subtitle": "Please select the exact location",
+    "currentLocation": "Current Location",
+    "reportLocation": "Report Location",
+    "mapHint": "Tap on map to select location",
+    "accuracy": "Accuracy: ±{{meters}}m",
+    "step3Title": "Please enter detailed information",
+    "additionalInfo": "Additional Information",
+    "descriptionLabel": "Description (Optional)",
+    "descriptionPlaceholder": "Please provide a detailed description of the hazard situation...",
+    "yes": "Yes",
+    "no": "No",
+    "numberPlaceholder": "Enter number",
+    "textPlaceholder": "Enter...",
+    "previous": "Previous",
+    "locationError": "Unable to get current location.",
+    "duplicateTitle": "Duplicate Report",
+    "duplicateMessage": "There are {{count}} similar reports nearby. Do you want to continue?",
+    "continue": "Continue",
+    "selectTypeWarning": "Please select a hazard type.",
+    "saveSuccess": "Save Complete",
+    "draftSaved": "Draft has been saved.",
+    "draftSaveError": "Failed to save draft.",
+    "submitError": "Failed to submit report.",
+    "types": {
+      "conflict": "Conflict",
+      "protest": "Protest",
+      "flood": "Flood",
+      "landslide": "Landslide",
+      "other": "Other"
+    }
+  },
+  "news": {
+    "title": "News",
+    "hazardNews": "Hazard News",
+    "latest": "Latest",
+    "viewOnMap": "View on Map",
+    "source": "Source",
+    "riskLevel": "Risk Level",
+    "loading": "Loading hazard information...",
+    "emptyAll": "No hazard information available",
+    "emptyFiltered": "No {{type}} hazard information available",
+    "occurred": "Occurred",
+    "warningMessage": "This is a {{type}} hazard area. Please be cautious.",
+    "riskScoreLabel": "Risk: {{score}}"
+  },
+  "errors": {
+    "network": "Cannot connect to server. Please check your network connection.",
+    "timeout": "Server response timeout. Please try again.",
+    "unauthorized": "Authentication expired. Please log in again.",
+    "notFound": "Requested information not found.",
+    "tooManyRequests": "Too many requests. Please try again later.",
+    "serverError": "Server error occurred. Please try again later."
+  },
+  "copyright": "© 2025 KOICA. All rights reserved."
+}
