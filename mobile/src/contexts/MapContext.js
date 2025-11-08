@@ -10,7 +10,9 @@
  * - routeResponse: 경로 계산 결과
  */
 
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { userCountryStorage } from '../services/storage';
+import { DEFAULT_COUNTRY } from '../constants/countries';
 
 const MapContext = createContext();
 
@@ -33,6 +35,23 @@ export function MapProvider({ children }) {
   const [routeParams, setRouteParams] = useState(null);
   const [routeResponseState, setRouteResponseState] = useState(null);
   const [userLocation, setUserLocation] = useState(null);
+  const [userCountry, setUserCountry] = useState(DEFAULT_COUNTRY);
+
+  // 초기화: 저장된 국가 설정 불러오기
+  useEffect(() => {
+    loadUserCountry();
+  }, []);
+
+  const loadUserCountry = async () => {
+    try {
+      const country = await userCountryStorage.get();
+      if (country) {
+        setUserCountry(country);
+      }
+    } catch (error) {
+      console.error('Failed to load user country:', error);
+    }
+  };
 
   // SearchScreen 제어
   const openSearch = useCallback(() => {
@@ -101,34 +120,48 @@ export function MapProvider({ children }) {
     setUserLocation(location);
   }, []);
 
+  // 사용자 국가 설정
+  const updateUserCountry = useCallback(async (country) => {
+    try {
+      setUserCountry(country);
+      await userCountryStorage.save(country);
+      return true;
+    } catch (error) {
+      console.error('Failed to update user country:', error);
+      return false;
+    }
+  }, []);
+
   const value = {
     // UI 상태
     isSearchOpen,
     isPlaceSheetOpen,
     isRouteSheetOpen,
-    
+
     // 데이터
     selectedPlace,
     routeParams,
     routeResponse: routeResponseState,
     userLocation,
-    
+    userCountry,
+
     // SearchScreen 액션
     openSearch,
     closeSearch,
-    
+
     // PlaceDetailSheet 액션
     openPlaceSheet,
     closePlaceSheet,
-    
+
     // RouteResultSheet 액션
     openRouteSheet,
     closeRouteSheet,
     setRouteResponse,
-    
+
     // 기타
     clearSelectedPlace,
     updateUserLocation,
+    updateUserCountry,
   };
 
   return (

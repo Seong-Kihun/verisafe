@@ -8,7 +8,7 @@
  * 4. 경로 선택 시 위험 정보 브리핑
  */
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -24,6 +24,7 @@ import { useTranslation } from 'react-i18next';
 import { Colors, Spacing, Typography } from '../styles';
 import { useRoutePlanningContext } from '../contexts/RoutePlanningContext';
 import { useMapContext } from '../contexts/MapContext';
+import { useHazardFilter } from '../contexts/HazardFilterContext';
 import { routeAPI } from '../services/api';
 import LocationInput from '../components/LocationInput';
 import TransportationModeSelector from '../components/TransportationModeSelector';
@@ -38,6 +39,9 @@ export default function RoutePlanningScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const route = useRoute();
+
+  // 경쟁 상태 방지를 위한 요청 ID 관리
+  const requestIdRef = useRef(0);
 
   const {
     startLocation,
@@ -58,6 +62,7 @@ export default function RoutePlanningScreen() {
   } = useRoutePlanningContext();
 
   const { setRouteResponse } = useMapContext();
+  const { excludedHazardTypes } = useHazardFilter();
 
   // 정렬 옵션 상태
   const [sortBy, setSortBy] = useState('time'); // 'time', 'distance', 'risk'
@@ -78,8 +83,13 @@ export default function RoutePlanningScreen() {
   }, [routes, sortBy]);
 
   // 경로 계산 함수 (useEffect보다 먼저 정의)
+  // 경쟁 상태 방지: 가장 최근 요청의 결과만 적용
   const calculateRoutes = useCallback(async () => {
     if (!startLocation || !endLocation) return;
+
+    // 새로운 요청 ID 생성
+    requestIdRef.current += 1;
+    const currentRequestId = requestIdRef.current;
 
     setCalculating(true);
     try {
@@ -87,8 +97,15 @@ export default function RoutePlanningScreen() {
         { lat: startLocation.lat, lng: startLocation.lng },
         { lat: endLocation.lat, lng: endLocation.lng },
         'safe',
-        transportationMode
+        transportationMode,
+        excludedHazardTypes
       );
+
+      // 경쟁 상태 체크: 이 요청이 아직 최신 요청인지 확인
+      if (currentRequestId !== requestIdRef.current) {
+        console.log(`[RoutePlanning] 요청 무시됨 (구버전): 요청 ID ${currentRequestId}, 현재 ID ${requestIdRef.current}`);
+        return; // 더 이상 최신 요청이 아니면 무시
+      }
 
       if (response.data && response.data.routes) {
         console.log(`[RoutePlanning] 경로 계산 완료: ${response.data.routes.length}개 경로`);
@@ -108,13 +125,50 @@ export default function RoutePlanningScreen() {
         setRoutesList([]);
       }
     } catch (error) {
+      // 경쟁 상태 체크: 에러 처리도 최신 요청만 적용
+      if (currentRequestId !== requestIdRef.current) {
+        console.log(`[RoutePlanning] 에러 무시됨 (구버전): 요청 ID ${currentRequestId}`);
+        return;
+      }
+
       console.error('[RoutePlanning] Failed to calculate routes:', error);
-      Alert.alert(t('common.error'), t('route.calculationError'));
+
+      // 에러 타입에 따른 상세 메시지
+      let errorTitle = t('common.error');
+      let errorMessage = t('route.calculationError');
+
+      if (error.userMessage) {
+        // API 인터셉터에서 설정한 사용자 친화적 메시지
+        errorMessage = error.userMessage;
+      } else if (error.response) {
+        // HTTP 응답 에러
+        const status = error.response.status;
+        if (status === 400) {
+          errorMessage = '잘못된 요청입니다. 출발지와 목적지를 확인해주세요.';
+        } else if (status === 404) {
+          errorMessage = '경로를 찾을 수 없습니다. 다른 출발지나 목적지를 선택해보세요.';
+        } else if (status === 500) {
+          errorMessage = '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+        }
+      } else if (error.request) {
+        // 네트워크 에러
+        errorMessage = '서버에 연결할 수 없습니다. 네트워크 연결을 확인해주세요.';
+      }
+
+      // 위험 필터가 너무 많은 경우 추가 안내
+      if (excludedHazardTypes.length > 5) {
+        errorMessage += '\n\n너무 많은 위험 유형을 제외하면 경로를 찾기 어려울 수 있습니다. 필터를 조정해보세요.';
+      }
+
+      Alert.alert(errorTitle, errorMessage);
       setRoutesList([]);
     } finally {
-      setCalculating(false);
+      // 경쟁 상태 체크: 로딩 상태도 최신 요청만 변경
+      if (currentRequestId === requestIdRef.current) {
+        setCalculating(false);
+      }
     }
-  }, [startLocation, endLocation, transportationMode, setRouteResponse]);
+  }, [startLocation, endLocation, transportationMode, excludedHazardTypes, setRouteResponse, t, setRoutesList, setCalculating]);
 
   // route params에서 목적지 가져오기 (PlaceDetailSheet에서 경로 버튼 클릭 시)
   useEffect(() => {
@@ -130,13 +184,14 @@ export default function RoutePlanningScreen() {
   }, [route.params]);
 
   // 출발지/목적지가 모두 입력되면 자동으로 경로 계산
+  // excludedHazardTypes가 변경되면 경로 재계산
   useEffect(() => {
     if (startLocation && endLocation) {
       calculateRoutes();
     } else {
       setRoutesList([]);
     }
-  }, [startLocation, endLocation, transportationMode, calculateRoutes]);
+  }, [startLocation, endLocation, transportationMode, excludedHazardTypes, calculateRoutes]);
 
   const handleStartPress = () => {
     navigation.navigate('Search', { 
@@ -234,7 +289,7 @@ export default function RoutePlanningScreen() {
             <RouteComparison
               routes={routes}
               selectedRoute={selectedRoute}
-              onSelect={null}
+              onSelect={handleRouteSelect}
             />
             {/* 전체 경로 목록 */}
             <View style={styles.routeListContainer}>

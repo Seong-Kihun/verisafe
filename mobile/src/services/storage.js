@@ -14,6 +14,8 @@ const KEYS = {
   EMERGENCY_CONTACTS: '@verisafe:emergency_contacts',
   SETTINGS: '@verisafe:settings',
   STATS: '@verisafe:stats',
+  ONBOARDING_COMPLETED: '@verisafe:onboarding_completed',
+  USER_COUNTRY: '@verisafe:user_country',
 };
 
 // 사용자 프로필
@@ -22,6 +24,7 @@ export const userProfileStorage = {
     try {
       const data = await AsyncStorage.getItem(KEYS.USER_PROFILE);
       return data ? JSON.parse(data) : {
+        id: 1, // 기본 사용자 ID
         name: 'KOICA Worker',
         email: 'worker@koica.go.kr',
         phone: '+211-XXX-XXXX',
@@ -30,7 +33,15 @@ export const userProfileStorage = {
       };
     } catch (error) {
       console.error('Failed to load user profile:', error);
-      return null;
+      // 에러 발생 시에도 기본 프로필 반환
+      return {
+        id: 1,
+        name: 'KOICA Worker',
+        email: 'worker@koica.go.kr',
+        phone: '+211-XXX-XXXX',
+        organization: 'KOICA',
+        role: 'user',
+      };
     }
   },
 
@@ -423,6 +434,62 @@ export const clearAllData = async () => {
     console.error('Failed to clear all data:', error);
     return false;
   }
+};
+
+// 온보딩 완료 상태
+export const onboardingStorage = {
+  isCompleted: async () => {
+    try {
+      const completed = await AsyncStorage.getItem(KEYS.ONBOARDING_COMPLETED);
+      return completed === 'true';
+    } catch (error) {
+      console.error('Failed to check onboarding status:', error);
+      return false;
+    }
+  },
+
+  setCompleted: async () => {
+    try {
+      await AsyncStorage.setItem(KEYS.ONBOARDING_COMPLETED, 'true');
+      return true;
+    } catch (error) {
+      console.error('Failed to set onboarding completed:', error);
+      return false;
+    }
+  },
+
+  reset: async () => {
+    try {
+      await AsyncStorage.removeItem(KEYS.ONBOARDING_COMPLETED);
+      return true;
+    } catch (error) {
+      console.error('Failed to reset onboarding:', error);
+      return false;
+    }
+  },
+};
+
+// 사용자 국가 설정
+export const userCountryStorage = {
+  get: async () => {
+    try {
+      const data = await AsyncStorage.getItem(KEYS.USER_COUNTRY);
+      return data ? JSON.parse(data) : null;
+    } catch (error) {
+      console.error('Failed to load user country:', error);
+      return null;
+    }
+  },
+
+  save: async (country) => {
+    try {
+      await AsyncStorage.setItem(KEYS.USER_COUNTRY, JSON.stringify(country));
+      return true;
+    } catch (error) {
+      console.error('Failed to save user country:', error);
+      return false;
+    }
+  },
 };
 
 // 데이터 내보내기

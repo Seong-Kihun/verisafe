@@ -10,6 +10,7 @@ import { Colors, Typography } from '../styles';
 import MapScreen from '../screens/MapScreen';
 import SearchScreen from '../screens/SearchScreen';
 import RoutePlanningScreen from '../screens/RoutePlanningScreen';
+import NavigationScreen from '../screens/NavigationScreen';
 
 const Stack = createStackNavigator();
 
@@ -90,11 +91,19 @@ export default function MapStack() {
           }),
         }}
       />
-      <Stack.Screen 
-        name="RoutePlanning" 
+      <Stack.Screen
+        name="RoutePlanning"
         component={RoutePlanningScreen}
-        options={{ 
+        options={{
           title: '경로 찾기',
+        }}
+      />
+      <Stack.Screen
+        name="NavigationScreen"
+        component={NavigationScreen}
+        options={{
+          headerShown: false,
+          presentation: 'fullScreenModal',
         }}
       />
     </Stack.Navigator>

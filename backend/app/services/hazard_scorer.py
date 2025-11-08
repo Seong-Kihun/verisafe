@@ -28,9 +28,16 @@ class HazardScorer:
             await self.update_all_risk_scores()
             await asyncio.sleep(self.update_interval)
 
-    async def update_all_risk_scores(self):
-        """모든 도로 엣지의 위험도를 재계산 (PostGIS 공간 쿼리 사용)"""
+    async def update_all_risk_scores(self, excluded_hazard_types: list = None):
+        """
+        모든 도로 엣지의 위험도를 재계산 (PostGIS 공간 쿼리 사용)
+
+        Args:
+            excluded_hazard_types: 계산에서 제외할 위험 유형 리스트 (예: ['checkpoint', 'other'])
+        """
         logger.info(f"[{datetime.now()}] 위험도 업데이트 시작")
+        if excluded_hazard_types:
+            logger.info(f"제외된 위험 유형: {excluded_hazard_types}")
 
         if self.session_factory is None:
             logger.warning("경고: DB 세션 팩토리가 설정되지 않았습니다")
@@ -42,8 +49,8 @@ class HazardScorer:
         try:
             graph = self.graph_manager.get_graph()
 
-            # 1. 활성 위험 정보 조회
-            hazards = await self._get_active_hazards(db)
+            # 1. 활성 위험 정보 조회 (필터 적용)
+            hazards = await self._get_active_hazards(db, excluded_hazard_types)
             logger.info(f"활성 위험 정보: {len(hazards)}개")
 
             if not hazards:
@@ -101,7 +108,7 @@ class HazardScorer:
         
         # 각 위험 정보에 대해 엣지 선분과의 최단 거리 계산
         for hazard in hazards:
-            hazard_point = (hazard['latitude'], hazard['longitude'])
+            hazard_point = (hazard['lat'], hazard['lng'])
             hazard_radius_km = hazard['radius']
             
             # 선분에서 점까지의 최단 거리 계산
@@ -163,33 +170,56 @@ class HazardScorer:
         # 정규화 (0-100)
         return min(int(avg_risk), 100)
     
-    async def _get_active_hazards(self, db: Session) -> List[Dict]:
+    async def _get_active_hazards(self, db: Session, excluded_hazard_types: list = None) -> List[Dict]:
         """
         활성화된 위험 정보 조회
 
         Args:
             db: 데이터베이스 세션
+            excluded_hazard_types: 제외할 위험 유형 리스트
 
         Returns:
             List of dicts with {id, hazard_type, risk_score, lat, lng, radius}
         """
         try:
             # SQLite 호환 쿼리: latitude/longitude만 사용
-            query = text("""
-                SELECT
-                    id,
-                    hazard_type,
-                    risk_score,
-                    latitude,
-                    longitude,
-                    radius
-                FROM hazards
-                WHERE (end_date IS NULL OR end_date > datetime('now'))
-                  AND verified = TRUE
-                ORDER BY risk_score DESC
-            """)
+            # 제외할 위험 유형 필터링 추가
+            if excluded_hazard_types and len(excluded_hazard_types) > 0:
+                # SQL IN 절을 위한 플레이스홀더 생성
+                placeholders = ', '.join([f':type_{i}' for i in range(len(excluded_hazard_types))])
+                query = text(f"""
+                    SELECT
+                        id,
+                        hazard_type,
+                        risk_score,
+                        latitude,
+                        longitude,
+                        radius
+                    FROM hazards
+                    WHERE (end_date IS NULL OR end_date > datetime('now'))
+                      AND verified = TRUE
+                      AND hazard_type NOT IN ({placeholders})
+                    ORDER BY risk_score DESC
+                """)
+                # 파라미터 바인딩
+                params = {f'type_{i}': hazard_type for i, hazard_type in enumerate(excluded_hazard_types)}
+                result = db.execute(query, params)
+            else:
+                query = text("""
+                    SELECT
+                        id,
+                        hazard_type,
+                        risk_score,
+                        latitude,
+                        longitude,
+                        radius
+                    FROM hazards
+                    WHERE (end_date IS NULL OR end_date > datetime('now'))
+                      AND verified = TRUE
+                    ORDER BY risk_score DESC
+                """)
+                result = db.execute(query)
 
-            result = db.execute(query)
             hazards = []
 
             for row in result:

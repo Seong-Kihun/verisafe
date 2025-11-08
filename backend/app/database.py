@@ -36,6 +36,6 @@ def get_db():
 
 def init_db():
     """데이터베이스 초기화 (테이블 생성)"""
-    from app.models import user, road, hazard, landmark, report, safe_haven, sos_event, safety_checkin
+    from app.models import user, road, hazard, landmark, report, safe_haven, sos_event, safety_checkin, detected_feature
     Base.metadata.create_all(bind=engine)
     print("[Database] 테이블 생성 완료")

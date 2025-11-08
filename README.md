@@ -4,27 +4,20 @@
 
 ---
 
-## 🚀 빠른 시작 (3단계)
+## 🚀 빠른 시작 (2단계)
 
 ### 처음 실행 시 (한 번만)
 
-1. **STEP1_database.bat** 실행
-   - Docker 컨테이너 시작 (PostgreSQL, Redis, PgAdmin)
-   - 30초 대기
-
-2. **STEP2_install.bat** 실행
-   - Python 가상환경 생성
-   - 패키지 설치 (5-10분 소요, 커피 타임 ☕)
+1. **SETUP.bat** 실행
+   - Docker 데이터베이스 시작 (PostgreSQL, Redis, PgAdmin)
+   - Python 가상환경 생성 및 패키지 설치
+   - 환경 설정 및 데이터베이스 초기화
+   - 소요 시간: 약 10분 (커피 타임 ☕)
    - Python 3.10 이상 필요
-
-3. **STEP3_setup.bat** 실행
-   - .env 파일 자동 생성 (비밀번호 자동 설정)
-   - 데이터베이스 테이블 생성
-   - 1분 소요
 
 ### 서버 시작
 
-- **START.bat** 실행 (자동으로 백엔드와 프론트엔드 시작)
+2. **START.bat** 실행 (백엔드와 프론트엔드 자동 시작)
 
 **접속 URL:**
 - API 문서: http://localhost:8000/docs
@@ -79,12 +72,12 @@ verisafe/
 
 ---
 
-## 📚 상세 문서
+## 📚 사용 방법
 
-- **READ_ME_FIRST.txt** - 시작 가이드
-- **STATUS.md** - 프로젝트 현황
-- **backend/OPTIMIZATION_REPORT.md** - 최적화 상세 보고서
-- **backend/OPTIMIZATION_SUMMARY.md** - 최적화 요약
+1. **처음 사용**: `SETUP.bat` 실행 (한 번만)
+2. **서버 시작**: `START.bat` 실행
+3. **백엔드만**: `backend\start.bat` 실행
+4. **프론트엔드만**: `mobile\start.bat` 실행
 
 ---
 

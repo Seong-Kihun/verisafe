@@ -21,13 +21,17 @@ import {
   Share,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import { Colors, Spacing, Typography } from '../styles';
 import { useMapContext } from '../contexts/MapContext';
+import { useNavigation as useNavContext } from '../contexts/NavigationContext';
 import Icon from './icons/Icon';
 
 export default function RouteResultSheet() {
   const insets = useSafeAreaInsets();
   const { routeResponse, closeRouteSheet } = useMapContext();
+  const { startNavigation } = useNavContext();
+  const navigation = useNavigation();
   const [selectedMode, setSelectedMode] = useState('safe');
 
   if (!routeResponse || !routeResponse.routes || routeResponse.routes.length === 0) {
@@ -82,29 +86,26 @@ export default function RouteResultSheet() {
     return route.hazards?.length || Math.floor(route.risk_score / 20);
   };
 
-  const handleStartNavigation = () => {
+  const handleStartNavigation = async () => {
     const currentRoute = selectedMode === 'safe' ? safeRoute : fastRoute;
     if (currentRoute) {
-      Alert.alert(
-        '안내 시작',
-        `${selectedMode === 'safe' ? '안전' : '빠른'} 경로로 안내를 시작합니다.`,
-        [
-          { text: '취소', style: 'cancel' },
-          {
-            text: '시작',
-            onPress: () => {
-              // 향후 구현: 실시간 네비게이션 기능
-              // - 현재 위치 추적
-              // - 경로 이탈 감지 및 재탐색
-              // - 음성 안내
-              if (__DEV__) {
-                console.log('Navigation started for route:', currentRoute.id);
-              }
-              closeRouteSheet();
-            }
-          }
-        ]
-      );
+      try {
+        // 네비게이션 시작 (위치 추적, 음성 안내 등 초기화)
+        await startNavigation(currentRoute);
+
+        // 네비게이션 화면으로 이동
+        navigation.navigate('NavigationScreen');
+
+        // 경로 결과 시트 닫기
+        closeRouteSheet();
+      } catch (error) {
+        console.error('[RouteResultSheet] Navigation start failed:', error);
+        Alert.alert(
+          '오류',
+          '네비게이션을 시작할 수 없습니다.\n위치 권한을 확인해주세요.',
+          [{ text: '확인' }]
+        );
+      }
     }
   };
 

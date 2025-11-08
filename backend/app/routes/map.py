@@ -35,10 +35,26 @@ async def get_hazards(
     lat: float = Query(4.8594, description="중심 위도"),
     lng: float = Query(31.5713, description="중심 경도"),
     radius: float = Query(15.0, description="반경 (km)"),
+    country: str = Query(None, description="국가 코드 (ISO 3166-1 alpha-2)"),
     db: Session = Depends(get_db)
 ):
-    """주변 위험 정보 조회"""
-    hazards = db.query(Hazard).all()
+    """주변 위험 정보 조회 (국가별 필터링 지원)"""
+    query = db.query(Hazard)
+
+    # 국가 필터링 (우선순위)
+    if country:
+        query = query.filter(Hazard.country == country)
+
+    # 위치 기반 필터링 (간단한 bounding box)
+    # 1도 ≈ 111km이므로 radius를 도 단위로 변환
+    degree_radius = radius / 111.0
+    query = query.filter(
+        Hazard.latitude.between(lat - degree_radius, lat + degree_radius),
+        Hazard.longitude.between(lng - degree_radius, lng + degree_radius)
+    )
+
+    hazards = query.all()
+    logger.info(f"위험 정보 조회: country={country}, 결과={len(hazards)}개")
     return hazards
 
 

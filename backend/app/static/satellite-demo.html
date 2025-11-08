@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VeriSafe - 위성 이미지 AI 분석 데모</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            padding: 40px;
+        }
+
+        .upload-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .upload-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            font-size: 1.1em;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .results {
+            display: none;
+        }
+
+        .results.active {
+            display: block;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-card h3 {
+            font-size: 2em;
+            margin-bottom: 5px;
+        }
+
+        .stat-card p {
+            opacity: 0.9;
+        }
+
+        .visualization-steps {
+            margin-top: 30px;
+        }
+
+        .step {
+            margin-bottom: 30px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.5s ease;
+        }
+
+        .step.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .step h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+
+        .step img {
+            width: 100%;
+            max-width: 900px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            display: block;
+            margin: 0 auto;
+        }
+
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .indicator-dot {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: #ddd;
+            transition: all 0.3s;
+        }
+
+        .indicator-dot.active {
+            background: #667eea;
+            transform: scale(1.3);
+        }
+
+        .progress-bar {
+            height: 5px;
+            background: #e0e0e0;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.5s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>VeriSafe - 위성 이미지 AI 분석</h1>
+            <p>실시간 도로 및 건물 감지 시스템 데모</p>
+        </div>
+
+        <div class="main-content">
+            <div class="upload-section">
+                <h2>분석 시작하기</h2>
+                <div class="button-group">
+                    <label for="fileInput" class="btn btn-primary">
+                        이미지 업로드하기
+                    </label>
+                    <input type="file" id="fileInput" accept="image/*">
+                    <button class="btn btn-secondary" onclick="runSampleDemo()">
+                        샘플 이미지로 시연하기
+                    </button>
+                </div>
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>AI가 위성 이미지를 분석 중입니다...</p>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+            </div>
+
+            <div class="results" id="results">
+                <h2 style="text-align: center; margin-bottom: 30px; color: #333;">분석 결과</h2>
+
+                <div class="stats-grid" id="statsGrid"></div>
+
+                <div class="step-indicator" id="stepIndicator">
+                    <div class="indicator-dot"></div>
+                    <div class="indicator-dot"></div>
+                    <div class="indicator-dot"></div>
+                    <div class="indicator-dot"></div>
+                </div>
+
+                <div class="visualization-steps" id="visualizationSteps"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+        let currentStep = 0;
+
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                uploadAndAnalyze(file);
+            }
+        });
+
+        async function runSampleDemo() {
+            showLoading();
+
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/satellite/sample-demo`);
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    displayResults(data.result);
+                } else {
+                    alert('분석 실패: ' + (data.detail || '알 수 없는 오류'));
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('네트워크 오류: ' + error.message);
+            }
+        }
+
+        async function uploadAndAnalyze(file) {
+            showLoading();
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/satellite/analyze-demo`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    displayResults(data.result);
+                } else {
+                    alert('분석 실패: ' + (data.detail || '알 수 없는 오류'));
+                    hideLoading();
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('업로드 오류: ' + error.message);
+                hideLoading();
+            }
+        }
+
+        function showLoading() {
+            document.getElementById('loading').classList.add('active');
+            document.getElementById('results').classList.remove('active');
+
+            // 프로그레스 바 애니메이션
+            let progress = 0;
+            const progressFill = document.getElementById('progressFill');
+            const interval = setInterval(() => {
+                progress += 5;
+                progressFill.style.width = progress + '%';
+                if (progress >= 90) {
+                    clearInterval(interval);
+                }
+            }, 100);
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').classList.remove('active');
+        }
+
+        function displayResults(result) {
+            setTimeout(() => {
+                hideLoading();
+                document.getElementById('results').classList.add('active');
+
+                const stats = result.analysis.statistics;
+                displayStats(result.analysis);
+                displayVisualization(result);
+
+                // 단계별 애니메이션
+                animateSteps();
+            }, 1000);
+        }
+
+        function displayStats(analysis) {
+            const statsGrid = document.getElementById('statsGrid');
+            const stats = analysis.statistics;
+
+            statsGrid.innerHTML = `
+                <div class="stat-card">
+                    <h3>${analysis.total_roads}</h3>
+                    <p>감지된 도로</p>
+                </div>
+                <div class="stat-card">
+                    <h3>${analysis.total_buildings}</h3>
+                    <p>감지된 건물</p>
+                </div>
+                <div class="stat-card">
+                    <h3>${Math.round(stats.total_road_length)}</h3>
+                    <p>총 도로 길이 (px)</p>
+                </div>
+                <div class="stat-card">
+                    <h3>${(stats.avg_road_confidence * 100).toFixed(0)}%</h3>
+                    <p>평균 신뢰도</p>
+                </div>
+            `;
+        }
+
+        function displayVisualization(result) {
+            const stepsContainer = document.getElementById('visualizationSteps');
+            const viz = result.visualization;
+
+            const steps = [
+                { title: '1. 원본 위성 이미지', image: viz.original },
+                { title: '2. 도로 감지 결과', image: viz.roads },
+                { title: '3. 건물 감지 결과', image: viz.buildings },
+                { title: '4. 최종 분석 결과', image: viz.combined }
+            ];
+
+            stepsContainer.innerHTML = steps.map((step, index) => `
+                <div class="step" data-step="${index}">
+                    <h3>${step.title}</h3>
+                    <img src="data:image/jpeg;base64,${step.image}" alt="${step.title}">
+                </div>
+            `).join('');
+        }
+
+        function animateSteps() {
+            const steps = document.querySelectorAll('.step');
+            const indicators = document.querySelectorAll('.indicator-dot');
+
+            let delay = 0;
+            steps.forEach((step, index) => {
+                setTimeout(() => {
+                    step.classList.add('active');
+                    indicators[index].classList.add('active');
+                }, delay);
+                delay += 800;
+            });
+        }
+    </script>
+</body>
+</html>

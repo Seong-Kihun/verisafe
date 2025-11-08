@@ -20,6 +20,9 @@ class Hazard(Base):
     longitude = Column(Float, nullable=False, index=True)  # 위치 검색 최적화
     radius = Column(Float, nullable=False)  # 영향 반경 (km)
 
+    # 국가 코드 (ISO 3166-1 alpha-2)
+    country = Column(String(2), nullable=True, index=True)  # 국가별 필터링용
+
     # PostGIS geometry는 PostgreSQL로 전환 시 추가
     # 현재는 latitude/longitude만 사용
 

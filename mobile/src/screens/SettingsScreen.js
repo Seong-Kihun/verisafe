@@ -18,13 +18,20 @@ import {
 import { useTranslation } from 'react-i18next';
 import { Colors, Typography, Spacing } from '../styles';
 import { settingsStorage, exportAllData, clearAllData, statsStorage } from '../services/storage';
+import { useOnboarding } from '../contexts/OnboardingContext';
+import { useMapContext } from '../contexts/MapContext';
+import { COUNTRIES } from '../constants/countries';
 import Icon from '../components/icons/Icon';
 import { setLanguage } from '../i18n';
 
 export default function SettingsScreen({ navigation }) {
   const { t, i18n } = useTranslation();
+  const { resetOnboarding } = useOnboarding();
+  const { userCountry, updateUserCountry } = useMapContext();
   const [loading, setLoading] = useState(true);
   const [languageModalVisible, setLanguageModalVisible] = useState(false);
+  const [countryModalVisible, setCountryModalVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [settings, setSettings] = useState({
     notifications: true,
     language: i18n.language || 'ko',
@@ -70,6 +77,24 @@ export default function SettingsScreen({ navigation }) {
     await settingsStorage.save(newSettings);
     await setLanguage(language);
     setLanguageModalVisible(false);
+  };
+
+  const handleCountryChange = () => {
+    setSearchQuery('');
+    setCountryModalVisible(true);
+  };
+
+  const handleSelectCountry = async (country) => {
+    const success = await updateUserCountry(country);
+    if (success) {
+      setCountryModalVisible(false);
+      Alert.alert(
+        '국가 변경 완료',
+        `활동 국가가 ${country.name}으로 변경되었습니다.\n뉴스 탭과 지도가 자동으로 업데이트됩니다.`
+      );
+    } else {
+      Alert.alert('오류', '국가 변경에 실패했습니다.');
+    }
   };
 
   const handleExportData = async () => {
@@ -134,6 +159,28 @@ export default function SettingsScreen({ navigation }) {
               Alert.alert(t('common.success'), t('settings.alerts.statsReset'));
             } else {
               Alert.alert(t('common.error'), t('settings.alerts.statsResetError'));
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleResetOnboarding = async () => {
+    Alert.alert(
+      '온보딩 초기화',
+      '온보딩을 처음부터 다시 시작하시겠습니까?\n(개발/테스트용)',
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: '초기화',
+          style: 'destructive',
+          onPress: async () => {
+            const success = await resetOnboarding();
+            if (success) {
+              Alert.alert('완료', '앱을 재시작하면 온보딩 화면이 표시됩니다.');
+            } else {
+              Alert.alert('오류', '온보딩 초기화에 실패했습니다.');
             }
           },
         },
@@ -218,6 +265,19 @@ export default function SettingsScreen({ navigation }) {
           </View>
         </TouchableOpacity>
 
+        <TouchableOpacity style={styles.settingItem} onPress={handleCountryChange}>
+          <View style={styles.settingLeft}>
+            <Icon name="map" size={24} color={Colors.textPrimary} />
+            <Text style={styles.settingLabel}>활동 국가</Text>
+          </View>
+          <View style={styles.settingRight}>
+            <Text style={styles.settingValue}>
+              {userCountry ? `${userCountry.flag} ${userCountry.name.split('(')[0].trim()}` : '남수단'}
+            </Text>
+            <Icon name="chevronRight" size={20} color={Colors.textTertiary} />
+          </View>
+        </TouchableOpacity>
+
         <View style={styles.settingItem}>
           <View style={styles.settingLeft}>
             <Icon name="sync" size={24} color={Colors.textPrimary} />
@@ -261,6 +321,17 @@ export default function SettingsScreen({ navigation }) {
         </TouchableOpacity>
 
         <TouchableOpacity
+          style={styles.settingItem}
+          onPress={handleResetOnboarding}
+        >
+          <View style={styles.settingLeft}>
+            <Icon name="refresh" size={24} color={Colors.warning} />
+            <Text style={styles.settingLabel}>온보딩 초기화</Text>
+          </View>
+          <Icon name="chevronRight" size={20} color={Colors.textTertiary} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
           style={[styles.settingItem, styles.dangerItem]}
           onPress={handleClearAllData}
         >
@@ -296,6 +367,81 @@ export default function SettingsScreen({ navigation }) {
         <Text style={styles.copyright}>{t('copyright')}</Text>
       </View>
     </ScrollView>
+
+      {/* 국가 선택 모달 */}
+      <Modal
+        visible={countryModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setCountryModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setCountryModalVisible(false)}
+        >
+          <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>활동 국가 선택</Text>
+              <Text style={styles.modalSubtitle}>선택한 국가의 뉴스와 지도가 우선 표시됩니다</Text>
+            </View>
+
+            {/* 검색바 */}
+            <View style={styles.searchContainer}>
+              <Icon name="search" size={20} color={Colors.textTertiary} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="국가 검색..."
+                placeholderTextColor={Colors.textTertiary}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchQuery('')}>
+                  <Icon name="close" size={20} color={Colors.textTertiary} />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <ScrollView style={styles.languageList} showsVerticalScrollIndicator={false}>
+              {COUNTRIES.filter(country =>
+                country.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                country.nameEn.toLowerCase().includes(searchQuery.toLowerCase())
+              ).map((country) => (
+                <TouchableOpacity
+                  key={country.code}
+                  style={[
+                    styles.languageOption,
+                    userCountry?.code === country.code && styles.languageOptionSelected,
+                  ]}
+                  onPress={() => handleSelectCountry(country)}
+                >
+                  <Text style={styles.languageIcon}>{country.flag}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[
+                      styles.languageName,
+                      userCountry?.code === country.code && styles.languageNameSelected,
+                    ]}>
+                      {country.name}
+                    </Text>
+                    <Text style={styles.countryCity}>📍 {country.center.city}</Text>
+                  </View>
+                  {userCountry?.code === country.code && (
+                    <Icon name="check" size={24} color={Colors.primary} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            <TouchableOpacity
+              style={styles.modalCancelButton}
+              onPress={() => setCountryModalVisible(false)}
+            >
+              <Text style={styles.modalCancelText}>{t('common.cancel')}</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       {/* 언어 선택 모달 */}
       <Modal
@@ -510,5 +656,26 @@ const styles = StyleSheet.create({
   modalCancelText: {
     ...Typography.bodyLarge,
     color: Colors.textSecondary,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.background,
+    borderRadius: 12,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    marginBottom: Spacing.md,
+    gap: Spacing.sm,
+  },
+  searchInput: {
+    flex: 1,
+    ...Typography.body,
+    color: Colors.textPrimary,
+    padding: 0,
+  },
+  countryCity: {
+    ...Typography.captionSmall,
+    color: Colors.textSecondary,
+    marginTop: 2,
   },
 });

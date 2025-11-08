@@ -24,6 +24,7 @@ class HazardResponse(BaseModel):
     latitude: float
     longitude: float
     radius: float
+    country: Optional[str] = None
     description: Optional[str] = None
     verified: bool
     source: Optional[str] = None

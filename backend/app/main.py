@@ -1,6 +1,8 @@
 """VeriSafe API 메인 애플리케이션 (PostgreSQL + Redis)"""
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+import os
 
 from app.config import settings
 from app.utils.logger import get_logger
@@ -13,6 +15,14 @@ app = FastAPI(
     version=settings.version,
     debug=settings.debug
 )
+
+# Static 파일 서빙 설정 (데모 페이지용)
+static_dir = os.path.join(os.path.dirname(__file__), "static")
+if os.path.exists(static_dir):
+    app.mount("/demo", StaticFiles(directory=static_dir, html=True), name="demo")
+    logger.info(f"Static 파일 서빙 활성화: /demo")
+else:
+    logger.warning(f"Static 디렉토리 없음: {static_dir}")
 
 
 @app.on_event("startup")
@@ -137,7 +147,7 @@ async def health_check():
 
 
 # 라우터 등록
-from app.routes import auth, map, report, route, external_data, admin, data_dashboard, ai_predictions, ai_training, safe_havens, emergency, safety_checkin, detected_feature
+from app.routes import auth, map, report, route, external_data, admin, data_dashboard, ai_predictions, ai_training, safe_havens, emergency, safety_checkin, detected_feature, mapper, reviewer
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(map.router, prefix="/api/map", tags=["map"])
 app.include_router(report.router, prefix="/api/reports", tags=["reports"])
@@ -151,6 +161,8 @@ app.include_router(safe_havens.router, prefix="/api/safe-havens", tags=["safe_ha
 app.include_router(emergency.router, prefix="/api/emergency", tags=["emergency"])
 app.include_router(safety_checkin.router, prefix="/api/safety-checkin", tags=["safety_checkin"])
 app.include_router(detected_feature.router, prefix="/api/map", tags=["detected_features"])
+app.include_router(mapper.router, prefix="/api/mapper", tags=["mapper"])
+app.include_router(reviewer.router, prefix="/api/review", tags=["reviewer"])
 
 if __name__ == "__main__":
     import uvicorn

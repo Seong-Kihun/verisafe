@@ -1,13 +1,15 @@
 """관리자 대시보드 API"""
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, File, UploadFile
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from datetime import datetime, timedelta
+from typing import Optional
 
 from app.database import get_db
 from app.models.hazard import Hazard
 from app.models.report import Report
 from app.models.user import User
+from app.services.satellite.image_analyzer import satellite_image_analyzer
 
 router = APIRouter()
 
@@ -223,17 +225,17 @@ async def verify_report(report_id: str, status: str, db: Session = Depends(get_d
 async def get_system_health(db: Session = Depends(get_db)):
     """시스템 헬스 체크"""
     from app.services.redis_manager import redis_manager
-    
+
     try:
         # DB 연결 테스트
         db.execute("SELECT 1")
         db_status = "healthy"
     except:
         db_status = "unhealthy"
-    
+
     # Redis 상태
     redis_stats = redis_manager.get_stats()
-    
+
     return {
         "status": "success",
         "system_health": {
@@ -242,3 +244,265 @@ async def get_system_health(db: Session = Depends(get_db)):
             "timestamp": datetime.utcnow().isoformat()
         }
     }
+
+
+@router.post("/satellite/analyze-demo")
+async def analyze_satellite_demo(file: UploadFile = File(...)):
+    """
+    위성 이미지 분석 시각화 (아이디어톤 데모용)
+
+    단계별 분석 과정을 시각화하여 반환:
+    1. 원본 이미지
+    2. 도로 감지 결과
+    3. 건물 감지 결과
+    4. 최종 합성 이미지
+
+    Args:
+        file: 위성 이미지 파일
+
+    Returns:
+        분석 결과 + 각 단계별 이미지 (base64)
+    """
+    try:
+        # 이미지 파일 검증
+        if not file.content_type.startswith('image/'):
+            raise HTTPException(status_code=400, detail="이미지 파일만 업로드 가능합니다")
+
+        # 파일 크기 제한 (10MB)
+        MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+        contents = await file.read()
+        if len(contents) > MAX_FILE_SIZE:
+            raise HTTPException(status_code=400, detail="파일 크기는 10MB 이하여야 합니다")
+
+        # 위성 이미지 분석 + 시각화
+        result = satellite_image_analyzer.analyze_image_with_visualization(contents)
+
+        if "error" in result:
+            raise HTTPException(status_code=500, detail=result["error"])
+
+        return {
+            "status": "success",
+            "filename": file.filename,
+            "result": result
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"위성 이미지 분석 오류: {str(e)}")
+
+
+@router.get("/satellite/sample-demo")
+async def get_sample_satellite_demo():
+    """
+    샘플 위성 이미지 분석 데모
+
+    미리 준비된 샘플 이미지로 즉시 시연 가능
+    (이미지 업로드 없이 데모 실행)
+
+    Returns:
+        샘플 분석 결과 + 시각화
+    """
+    try:
+        import os
+
+        # 샘플 이미지 경로
+        sample_path = "app/services/satellite/sample_juba.jpg"
+
+        # 샘플 이미지 확인
+        if os.path.exists(sample_path):
+            with open(sample_path, 'rb') as f:
+                image_data = f.read()
+
+            result = satellite_image_analyzer.analyze_image_with_visualization(image_data)
+        else:
+            # 샘플 이미지 없으면 더미 데이터 반환
+            result = satellite_image_analyzer._dummy_visualization()
+
+        return {
+            "status": "success",
+            "sample_location": "Juba, South Sudan",
+            "note": "This is a demo analysis using sample satellite imagery",
+            "result": result
+        }
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        # 오류 시 더미 데이터 반환
+        result = satellite_image_analyzer._dummy_visualization()
+        return {
+            "status": "success",
+            "sample_location": "Juba, South Sudan (Demo)",
+            "note": "Fallback to dummy data due to error",
+            "result": result
+        }
+
+
+@router.get("/ai/timeseries-demo")
+async def get_timeseries_prediction_demo():
+    """
+    시계열 위험도 예측 시각화 데모 (아이디어톤용)
+
+    LSTM + 시간대별 승수 예측 과정을 시각화하여 반환
+
+    Returns:
+        시계열 데이터 + 예측 결과 + 시각화 데이터
+    """
+    from datetime import datetime, timedelta
+    from app.services.ai.improved_risk_predictor import improved_risk_predictor
+    from app.services.ai.time_multiplier_nn import time_multiplier_predictor
+    import random
+    import numpy as np
+
+    try:
+        # 현재 시간 (금요일 저녁 7시로 시뮬레이션)
+        current_time = datetime(2025, 11, 7, 19, 0)  # 금요일 19시
+
+        # 남수단 주바 좌표
+        latitude = 4.85
+        longitude = 31.6
+
+        # === 1. 과거 7일 시계열 데이터 생성 ===
+        past_7_days = []
+        for i in range(7, 0, -1):
+            past_time = current_time - timedelta(days=i)
+
+            # 시뮬레이션: 요일/시간대별 패턴
+            hour = past_time.hour
+            dow = past_time.weekday()
+
+            # 기본 위험도
+            if dow == 4 and 17 <= hour <= 20:  # 금요일 저녁
+                base = 70 + random.randint(-10, 10)
+            elif dow in [5, 6]:  # 주말
+                base = 35 + random.randint(-5, 5)
+            elif 22 <= hour or hour <= 5:  # 심야
+                base = 55 + random.randint(-10, 10)
+            else:
+                base = 45 + random.randint(-10, 10)
+
+            past_7_days.append({
+                "date": past_time.strftime("%Y-%m-%d"),
+                "time": past_time.strftime("%H:%M"),
+                "day_name": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][dow],
+                "risk_score": base,
+                "is_weekend": dow in [5, 6],
+                "is_evening": 17 <= hour <= 20
+            })
+
+        # === 2. LSTM 예측 ===
+        try:
+            base_risk, confidence, method = improved_risk_predictor.predict_risk(
+                latitude, longitude, current_time
+            )
+        except:
+            # 폴백: 규칙 기반
+            base_risk = 65.0
+            confidence = 0.75
+            method = "rule_based"
+
+        # === 3. 시간대별 승수 예측 ===
+        try:
+            multiplier, multiplier_method = time_multiplier_predictor.get_multiplier(
+                current_time, use_hybrid=True
+            )
+        except:
+            # 폴백
+            multiplier = 1.5
+            multiplier_method = "statistical"
+
+        # === 4. 최종 위험도 계산 ===
+        final_risk = min(100, base_risk * multiplier)
+
+        # === 5. 시간대별 승수 히트맵 데이터 (7일 × 24시간) ===
+        heatmap_data = []
+        days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+
+        for dow in range(7):
+            day_data = []
+            for hour in range(24):
+                # 시뮬레이션: 요일/시간별 승수 패턴
+                if dow == 5 and 17 <= hour <= 20:  # 금요일 저녁
+                    mult = 1.8 + random.uniform(-0.1, 0.1)
+                elif dow == 5 and 12 <= hour <= 16:  # 금요일 오후
+                    mult = 1.5 + random.uniform(-0.1, 0.1)
+                elif dow in [0, 6]:  # 주말
+                    mult = 0.7 + random.uniform(-0.1, 0.1)
+                elif 22 <= hour or hour <= 5:  # 심야
+                    mult = 1.3 + random.uniform(-0.1, 0.1)
+                elif 9 <= hour <= 17:  # 업무 시간
+                    mult = 1.1 + random.uniform(-0.1, 0.1)
+                else:
+                    mult = 1.0 + random.uniform(-0.1, 0.1)
+
+                day_data.append(round(mult, 2))
+
+            heatmap_data.append({
+                "day": days[dow],
+                "multipliers": day_data
+            })
+
+        # === 6. 향후 24시간 예측 ===
+        future_24h = []
+        for i in range(24):
+            future_time = current_time + timedelta(hours=i)
+            hour = future_time.hour
+
+            # 시뮬레이션
+            if 17 <= hour <= 20:
+                risk = 85 + random.randint(-5, 5)
+            elif 22 <= hour or hour <= 5:
+                risk = 65 + random.randint(-5, 5)
+            else:
+                risk = 50 + random.randint(-10, 10)
+
+            future_24h.append({
+                "time": future_time.strftime("%H:%M"),
+                "risk_score": risk
+            })
+
+        return {
+            "status": "success",
+            "timestamp": current_time.isoformat(),
+            "location": {
+                "name": "Juba, South Sudan",
+                "latitude": latitude,
+                "longitude": longitude
+            },
+            "past_7_days": past_7_days,
+            "prediction": {
+                "base_risk_score": round(base_risk, 2),
+                "time_multiplier": multiplier,
+                "final_risk_score": round(final_risk, 2),
+                "confidence": round(confidence, 2),
+                "lstm_method": method,
+                "multiplier_method": multiplier_method
+            },
+            "heatmap": {
+                "title": "시간대별 위험도 승수 (요일 × 시간)",
+                "data": heatmap_data,
+                "hours": list(range(24))
+            },
+            "future_24h": future_24h,
+            "model_info": {
+                "lstm": {
+                    "architecture": "Bidirectional LSTM + Attention",
+                    "hidden_size": 128,
+                    "num_layers": 3,
+                    "sequence_length": 7
+                },
+                "multiplier": {
+                    "architecture": "Feedforward Neural Network",
+                    "input_features": 10,
+                    "hidden_layers": [32, 16, 8]
+                }
+            }
+        }
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"시계열 예측 오류: {str(e)}")

@@ -1,6 +1,7 @@
 """긴급 상황 API"""
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import func
 import math
 
 from app.database import get_db
@@ -148,6 +149,7 @@ async def cancel_sos(
 
         # 상태 업데이트
         sos_event.status = 'cancelled'
+        sos_event.resolved_at = func.now()
         db.commit()
 
         logger.info(f"[SOS] User {cancel_data.user_id} cancelled SOS {sos_id}")
@@ -163,3 +165,93 @@ async def cancel_sos(
         logger.error(f"Error cancelling SOS: {e}", exc_info=True)
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to cancel SOS: {str(e)}")
+
+
+@router.get("/sos/user/{user_id}")
+async def get_user_sos_history(
+    user_id: int,
+    status: str = None,
+    limit: int = 50,
+    db: Session = Depends(get_db)
+):
+    """
+    사용자의 SOS 이력 조회
+
+    Parameters:
+    - user_id: 사용자 ID
+    - status: 상태 필터 (active, cancelled, resolved) - 선택
+    - limit: 최대 조회 개수 (기본값: 50)
+
+    Returns:
+    - SOS 이벤트 목록
+    """
+    try:
+        query = db.query(SOSEvent).filter(SOSEvent.user_id == user_id)
+
+        # 상태 필터 적용
+        if status:
+            query = query.filter(SOSEvent.status == status)
+
+        # 최신순 정렬 및 제한
+        sos_events = query.order_by(SOSEvent.created_at.desc()).limit(limit).all()
+
+        return {
+            "total": len(sos_events),
+            "events": [
+                {
+                    "id": event.id,
+                    "user_id": event.user_id,
+                    "latitude": event.latitude,
+                    "longitude": event.longitude,
+                    "message": event.message,
+                    "status": event.status,
+                    "created_at": event.created_at,
+                    "updated_at": event.updated_at,
+                    "resolved_at": event.resolved_at
+                }
+                for event in sos_events
+            ]
+        }
+
+    except Exception as e:
+        logger.error(f"Error fetching SOS history: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to fetch SOS history: {str(e)}")
+
+
+@router.get("/sos/{sos_id}")
+async def get_sos_detail(
+    sos_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    특정 SOS 이벤트 상세 조회
+
+    Parameters:
+    - sos_id: SOS 이벤트 ID
+
+    Returns:
+    - SOS 이벤트 상세 정보
+    """
+    try:
+        sos_event = db.query(SOSEvent).filter(SOSEvent.id == sos_id).first()
+
+        if not sos_event:
+            raise HTTPException(status_code=404, detail="SOS event not found")
+
+        return {
+            "id": sos_event.id,
+            "user_id": sos_event.user_id,
+            "latitude": sos_event.latitude,
+            "longitude": sos_event.longitude,
+            "message": sos_event.message,
+            "status": sos_event.status,
+            "created_at": sos_event.created_at,
+            "updated_at": sos_event.updated_at,
+            "resolved_at": sos_event.resolved_at
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching SOS detail: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to fetch SOS detail: {str(e)}")

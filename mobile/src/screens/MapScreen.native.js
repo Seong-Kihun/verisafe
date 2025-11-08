@@ -3,18 +3,21 @@
  * iOS/Android에서만 사용됨
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
-  View, Text, StyleSheet, ActivityIndicator, Alert, TouchableOpacity, ScrollView
+  View, Text, StyleSheet, ActivityIndicator, Alert, TouchableOpacity, ScrollView, Linking
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import * as Location from 'expo-location';
 import MapView, { Marker, Polyline, Circle, UrlTile } from 'react-native-maps';
 import { Colors, Spacing, getRiskColor, getRouteColor, Typography } from '../styles';
-import { mapAPI, routeAPI } from '../services/api';
+import { mapAPI, routeAPI, emergencyAPI } from '../services/api';
 import { useMapContext } from '../contexts/MapContext';
 import { useRoutePlanningContext } from '../contexts/RoutePlanningContext';
+import { useHazardFilter } from '../contexts/HazardFilterContext';
+import { emergencyContactsStorage, userProfileStorage } from '../services/storage';
+import { sendSOSSMS } from '../services/sms';
 import PlaceDetailSheet from '../components/PlaceDetailSheet';
 import RouteResultSheet from '../components/RouteResultSheet';
 import RouteHazardBriefing from '../components/RouteHazardBriefing';
@@ -23,20 +26,8 @@ import Icon from '../components/icons/Icon';
 import LayerToggleMenu from '../components/LayerToggleMenu';
 import FloatingActionButton from '../components/FloatingActionButton';
 import SafetyIndicator from '../components/SafetyIndicator';
-
-// 위험 유형별 필터 버튼
-const HAZARD_TYPES = [
-  { id: 'armed_conflict', name: '무력충돌', icon: 'conflict', color: '#EF4444' },
-  { id: 'conflict', name: '충돌', icon: 'conflict', color: '#DC2626' },
-  { id: 'protest_riot', name: '시위/폭동', icon: 'protest', color: '#F59E0B' },
-  { id: 'protest', name: '시위', icon: 'protest', color: '#F97316' },
-  { id: 'checkpoint', name: '검문소', icon: 'checkpoint', color: '#FF6B6B' },
-  { id: 'road_damage', name: '도로 손상', icon: 'roadDamage', color: '#F97316' },
-  { id: 'natural_disaster', name: '자연재해', icon: 'naturalDisaster', color: '#DC2626' },
-  { id: 'flood', name: '홍수', icon: 'naturalDisaster', color: '#3B82F6' },
-  { id: 'landslide', name: '산사태', icon: 'naturalDisaster', color: '#92400E' },
-  { id: 'other', name: '기타', icon: 'other', color: '#6B7280' },
-];
+import SOSConfirmModal from '../components/SOSConfirmModal';
+import { HAZARD_TYPES } from '../constants/hazardTypes';
 
 const JUBA_CENTER = {
   latitude: 4.8594,
@@ -56,7 +47,8 @@ export default function MapScreen() {
     userLocation,
     updateUserLocation,
     openPlaceSheet,
-    setRouteResponse
+    setRouteResponse,
+    userCountry
   } = useMapContext();
 
   const {
@@ -69,6 +61,8 @@ export default function MapScreen() {
     selectRoute
   } = useRoutePlanningContext();
 
+  const { excludedHazardTypes, toggleHazardType } = useHazardFilter();
+
   const [loading, setLoading] = useState(true);
   const [landmarks, setLandmarks] = useState([]);
   const [hazards, setHazards] = useState([]); // 전체 위험 정보 (경로가 없을 때)
@@ -76,25 +70,23 @@ export default function MapScreen() {
   const [mapRegion, setMapRegion] = useState(JUBA_CENTER);
   const mapRef = useRef(null); // MapView 참조
   const isUserPanningRef = useRef(false); // 사용자가 직접 지도를 이동시키는 중인지 추적
-  // 기본적으로 주요 위험 유형들을 표시 (사용자가 바로 볼 수 있도록)
-  const [activeHazardTypes, setActiveHazardTypes] = useState([
-    'armed_conflict',
-    'conflict',
-    'protest_riot',
-    'protest',
-    'checkpoint',
-    'natural_disaster',
-    'flood',
-    'landslide',
-  ]); // 여러 위험 유형 선택 가능
   const [locationPermission, setLocationPermission] = useState(false);
   const [lastTap, setLastTap] = useState(null);
   const lastTapTimeoutRef = useRef(null);
   const [isLayerMenuOpen, setIsLayerMenuOpen] = useState(false);
   const [timeFilter, setTimeFilter] = useState('all'); // 시간 필터 (all, 24h, 48h, 7d)
+  const [isSOSModalOpen, setIsSOSModalOpen] = useState(false);
+  const [emergencyContacts, setEmergencyContacts] = useState([]);
 
+  // 모든 위험 유형 목록 (excludedHazardTypes를 제외한 유형들을 표시)
+  // useMemo로 최적화하여 불필요한 재계산 방지
+  const activeHazardTypes = useMemo(() => {
+    const ALL_HAZARD_TYPE_IDS = HAZARD_TYPES.map(t => t.id);
+    return ALL_HAZARD_TYPE_IDS.filter(id => !excludedHazardTypes.includes(id));
+  }, [excludedHazardTypes]);
+
+  // 초기 마운트 시 권한 요청 및 cleanup
   useEffect(() => {
-    loadMapData();
     requestLocationPermission();
 
     // Cleanup: 컴포넌트 언마운트 시 timeout 정리
@@ -105,6 +97,28 @@ export default function MapScreen() {
       }
     };
   }, []);
+
+  // 국가 변경 시 지도 데이터 재로드
+  useEffect(() => {
+    loadMapData();
+  }, [userCountry]);
+
+  // 화면 포커스 시 긴급 연락처 재로드 (다른 화면에서 편집했을 수 있음)
+  useFocusEffect(
+    React.useCallback(() => {
+      loadEmergencyContacts();
+    }, [])
+  );
+
+  // 긴급 연락처 로드
+  const loadEmergencyContacts = async () => {
+    try {
+      const contacts = await emergencyContactsStorage.getAll();
+      setEmergencyContacts(contacts);
+    } catch (error) {
+      console.error('[MapScreen] Failed to load emergency contacts:', error);
+    }
+  };
 
   const requestLocationPermission = async () => {
     try {
@@ -121,6 +135,133 @@ export default function MapScreen() {
     } catch (error) {
       console.error('[MapScreen] Location permission error:', error);
     }
+  };
+
+  // SOS 버튼 클릭
+  const handleSOSButtonPress = () => {
+    setIsSOSModalOpen(true);
+  };
+
+  // SOS 확인 (실제 전송)
+  const handleSOSConfirm = async () => {
+    try {
+      if (!userLocation) {
+        Alert.alert('오류', '현재 위치를 확인할 수 없습니다.');
+        setIsSOSModalOpen(false);
+        return;
+      }
+
+      if (emergencyContacts.length === 0) {
+        Alert.alert('알림', '등록된 긴급 연락처가 없습니다.\n프로필 → 긴급 연락망에서 먼저 등록해주세요.');
+        setIsSOSModalOpen(false);
+        return;
+      }
+
+      // 사용자 프로필 가져오기
+      const userProfile = await userProfileStorage.get();
+      if (!userProfile) {
+        console.error('[SOS] Failed to get user profile');
+        Alert.alert('오류', '사용자 정보를 불러올 수 없습니다.');
+        setIsSOSModalOpen(false);
+        return;
+      }
+
+      const userName = userProfile.name || '사용자';
+      const userId = userProfile.id || 1;
+
+      // 백엔드에 SOS 이벤트 저장 시도
+      let backendResponse = null;
+      let backendFailed = false;
+
+      try {
+        const sosData = {
+          user_id: userId,
+          latitude: userLocation.latitude,
+          longitude: userLocation.longitude,
+          message: '긴급 SOS 요청',
+        };
+
+        backendResponse = await emergencyAPI.triggerSOS(sosData);
+        console.log('[SOS] Backend response:', backendResponse);
+      } catch (backendError) {
+        console.error('[SOS] Backend failed, continuing with SMS:', backendError);
+        backendFailed = true;
+        // 백엔드 실패해도 SMS는 계속 진행
+      }
+
+      // SMS 발송 (백엔드 실패와 무관하게 진행)
+      const smsSent = await sendSOSSMS(emergencyContacts, userLocation, userName);
+
+      // 모달 닫기
+      setIsSOSModalOpen(false);
+
+      // 결과에 따른 알림
+      if (!smsSent && backendFailed) {
+        // 둘 다 실패
+        Alert.alert(
+          '⚠️ SOS 전송 실패',
+          '서버와 SMS 전송에 모두 실패했습니다.\n긴급 상황이므로 직접 전화를 걸어주세요.',
+          [
+            { text: '취소', style: 'cancel' },
+            {
+              text: '전화 걸기',
+              onPress: () => {
+                if (emergencyContacts.length > 0) {
+                  const firstContact = emergencyContacts.sort((a, b) => a.priority - b.priority)[0];
+                  Linking.openURL(`tel:${firstContact.phone}`);
+                }
+              }
+            }
+          ]
+        );
+        return;
+      }
+
+      // 성공 알림 구성
+      const nearestHavenInfo = backendResponse?.nearest_safe_haven
+        ? `\n\n📍 가장 가까운 대피처:\n${backendResponse.nearest_safe_haven.name}\n거리: ${Math.round(backendResponse.nearest_safe_haven.distance)}m`
+        : '';
+
+      const smsInfo = smsSent
+        ? `\n✅ ${emergencyContacts.length}명에게 SMS 전송 완료`
+        : `\n⚠️ SMS 전송 취소됨`;
+
+      const backendInfo = backendFailed
+        ? '\n⚠️ 서버 연결 실패 (오프라인 모드)'
+        : '';
+
+      Alert.alert(
+        '🆘 SOS 발송 완료',
+        `긴급 알림이 전송되었습니다.${smsInfo}${backendInfo}${nearestHavenInfo}`,
+        [{ text: '확인' }]
+      );
+    } catch (error) {
+      console.error('[SOS] Critical error in SOS flow:', error);
+      setIsSOSModalOpen(false);
+
+      // 최종 fallback - 전화 걸기 옵션 제공
+      Alert.alert(
+        '심각한 오류',
+        'SOS 전송 중 오류가 발생했습니다.\n직접 전화를 걸어주세요.',
+        [
+          { text: '취소', style: 'cancel' },
+          {
+            text: '전화 걸기',
+            onPress: () => {
+              if (emergencyContacts.length > 0) {
+                const firstContact = emergencyContacts.sort((a, b) => a.priority - b.priority)[0];
+                Linking.openURL(`tel:${firstContact.phone}`);
+              }
+            }
+          }
+        ]
+      );
+    }
+  };
+
+  // SOS 취소
+  const handleSOSCancel = () => {
+    setIsSOSModalOpen(false);
   };
 
   // selectedPlace가 변경될 때 지도 포커스 (하지만 지도 클릭으로 인한 변경은 제외)
@@ -274,8 +415,9 @@ export default function MapScreen() {
   const loadMapData = async () => {
     try {
       console.log('[MapScreen DEBUG] 지도 데이터 로딩 시작...');
+      console.log('[MapScreen DEBUG] 선택된 국가:', userCountry?.name || '기본(남수단)');
 
-      const response = await mapAPI.getBounds(4.8, 31.5, 4.9, 31.6);
+      const response = await mapAPI.getBounds(4.8, 31.5, 4.9, 31.6, userCountry?.code);
 
       console.log('[MapScreen DEBUG] API 응답 상태:', response.status);
       console.log('[MapScreen DEBUG] API 응답 전체:', JSON.stringify(response.data, null, 2));
@@ -320,16 +462,9 @@ export default function MapScreen() {
   };
 
   // 위험 유형 필터 토글 (중복 선택 가능)
+  // HazardFilterContext와 연동하여 경로 계산에도 반영
   const handleHazardTypeFilter = (hazardTypeId) => {
-    setActiveHazardTypes(prev => {
-      if (prev.includes(hazardTypeId)) {
-        // 이미 선택된 경우 제거
-        return prev.filter(type => type !== hazardTypeId);
-      } else {
-        // 선택되지 않은 경우 추가
-        return [...prev, hazardTypeId];
-      }
-    });
+    toggleHazardType(hazardTypeId);
   };
 
   // 시간 필터 변경 핸들러
@@ -637,9 +772,10 @@ export default function MapScreen() {
               'natural_disaster': '자연재해',
               'flood': '홍수',
               'landslide': '산사태',
+              'safe_haven': '대피처',
               'other': '기타 위험',
             };
-            return nameMap[hazardType] || '위험 지역';
+            return nameMap[hazardType] || '알 수 없음';
           };
 
           console.log('[MapScreen DEBUG] 렌더링 체크:');
@@ -647,7 +783,8 @@ export default function MapScreen() {
           console.log('[MapScreen DEBUG] - hazards 개수:', hazards?.length || 0);
           console.log('[MapScreen DEBUG] - activeHazardTypes.length === 0:', activeHazardTypes.length === 0);
 
-          // 선택된 위험 유형이 있을 때만 표시 (초기에는 아무것도 표시하지 않음)
+          // 활성화된 위험 유형이 있고 위험 정보가 있을 때만 표시
+          // (모든 유형이 제외되거나 위험 정보가 없으면 아무것도 표시하지 않음)
           if (activeHazardTypes.length === 0 || !hazards || hazards.length === 0) {
             console.log('[MapScreen DEBUG] ⚠️ 위험 정보 렌더링 건너뜀 (조건 불만족)');
             return [];
@@ -876,6 +1013,16 @@ export default function MapScreen() {
         <Icon name="myLocation" size={24} color={Colors.primary} />
       </TouchableOpacity>
 
+      {/* SOS 긴급 버튼 */}
+      <TouchableOpacity
+        style={styles.sosButton}
+        onPress={handleSOSButtonPress}
+        activeOpacity={0.8}
+      >
+        <Icon name="warning" size={28} color={Colors.textInverse} />
+        <Text style={styles.sosButtonText}>SOS</Text>
+      </TouchableOpacity>
+
       {/* FAB - 경로 찾기 버튼 */}
       <FloatingActionButton />
 
@@ -963,6 +1110,15 @@ export default function MapScreen() {
         onToggle={handleHazardTypeFilter}
         timeFilter={timeFilter}
         onTimeFilterChange={handleTimeFilterChange}
+      />
+
+      {/* SOS 확인 모달 */}
+      <SOSConfirmModal
+        visible={isSOSModalOpen}
+        onConfirm={handleSOSConfirm}
+        onCancel={handleSOSCancel}
+        emergencyContactsCount={emergencyContacts.length}
+        userLocation={userLocation}
       />
 
       {/* OpenStreetMap 저작권 표시 */}
@@ -1061,6 +1217,29 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 8,
     elevation: 6,
+  },
+  sosButton: {
+    position: 'absolute',
+    left: Spacing.lg,
+    bottom: Spacing.xl + 16,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: Colors.danger,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: Colors.danger,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  sosButtonText: {
+    ...Typography.labelSmall,
+    color: Colors.textInverse,
+    fontWeight: '700',
+    fontSize: 11,
+    marginTop: 2,
   },
   userLocationMarker: {
     width: 20,

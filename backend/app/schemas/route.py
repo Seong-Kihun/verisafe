@@ -21,6 +21,7 @@ class RouteRequest(BaseModel):
     end: RoutePoint
     preference: str = "safe"  # safe or fast
     transportation_mode: str = "car"  # car, walking, bicycle
+    excluded_hazard_types: List[str] = []  # 경로 계산에서 제외할 위험 유형 리스트
 
 
 class RouteResponse(BaseModel):

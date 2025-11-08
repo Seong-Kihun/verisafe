@@ -54,7 +54,7 @@ const getHazardIcon = (hazardType) => {
 export default function NewsTabScreen() {
   const { t } = useTranslation();
   const navigation = useNavigation();
-  const { openPlaceSheet } = useMapContext();
+  const { openPlaceSheet, userCountry } = useMapContext();
 
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [hazards, setHazards] = useState([]);
@@ -64,18 +64,24 @@ export default function NewsTabScreen() {
   // 초기 로딩 시 위험 정보 로딩
   useEffect(() => {
     loadHazards();
-  }, []);
+  }, [userCountry]); // userCountry가 변경되면 다시 로드
 
   const loadHazards = async () => {
     try {
       setLoading(true);
       console.log('[NewsTab DEBUG] 위험 정보 로딩 시작...');
 
-      // 주바 중심 좌표에서 반경 50km 내 위험 정보 조회
+      // 사용자가 선택한 국가의 중심 좌표 사용
+      const center = userCountry?.center || { latitude: 4.8594, longitude: 31.5713 }; // 기본값: 주바
+
+      console.log('[NewsTab DEBUG] 국가 중심:', userCountry?.name || '기본(남수단)', center);
+
+      // 선택한 국가 중심에서 반경 50km 내 위험 정보 조회 (국가 필터링 포함)
       const response = await mapAPI.getHazards(
-        4.8594,
-        31.5713,
-        50
+        center.latitude,
+        center.longitude,
+        50,
+        userCountry?.code // 국가 코드로 필터링
       );
 
       console.log('[NewsTab DEBUG] API 응답 상태:', response.status);

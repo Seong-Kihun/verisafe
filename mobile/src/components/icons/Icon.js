@@ -32,6 +32,7 @@ export const ICON_MAP = {
   conflict: 'dangerous',
   roadDamage: 'construction',
   naturalDisaster: 'flash-on',
+  safeHaven: 'shield',  // 안전 대피처
   other: 'help-outline',
   
   // Transportation

@@ -186,12 +186,13 @@ export const authAPI = {
 };
 
 export const routeAPI = {
-  calculate: (start, end, preference, transportation_mode = 'car') =>
+  calculate: (start, end, preference, transportation_mode = 'car', excluded_hazard_types = []) =>
     api.post('/api/route/calculate', {
       start,
       end,
       preference,
-      transportation_mode
+      transportation_mode,
+      excluded_hazard_types
     }),
   getRouteHazards: (routeId, polyline) =>
     api.get(`/api/route/${routeId}/hazards`, {
@@ -218,6 +219,29 @@ export const emergencyAPI = {
     const response = await api.post(`/api/emergency/sos/${sosId}/cancel`, {
       user_id: userId
     });
+    return response.data;
+  },
+
+  /**
+   * Get user SOS history
+   * @param {number} userId - User ID
+   * @param {string} status - Filter by status (active, cancelled, resolved) - optional
+   * @param {number} limit - Maximum number of records (default: 50)
+   */
+  getUserSOSHistory: async (userId, status = null, limit = 50) => {
+    const params = { limit };
+    if (status) params.status = status;
+
+    const response = await api.get(`/api/emergency/sos/user/${userId}`, { params });
+    return response.data;
+  },
+
+  /**
+   * Get SOS event detail
+   * @param {number} sosId - SOS event ID
+   */
+  getSOSDetail: async (sosId) => {
+    const response = await api.get(`/api/emergency/sos/${sosId}`);
     return response.data;
   },
 };

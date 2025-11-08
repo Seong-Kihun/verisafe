@@ -23,6 +23,21 @@ from app.utils.logger import get_logger
 router = APIRouter()
 logger = get_logger(__name__)
 
+# 허용된 위험 유형 목록 (유효성 검증용)
+ALLOWED_HAZARD_TYPES = {
+    'armed_conflict',
+    'natural_disaster',
+    'road_damage',
+    'protest_riot',
+    'checkpoint',
+    'other',
+    'safe_haven',
+    'conflict',
+    'protest',
+    'flood',
+    'landslide'
+}
+
 # GraphManager 및 RouteCalculator 인스턴스
 graph_manager = GraphManager()
 route_calculator = RouteCalculator(graph_manager)
@@ -39,8 +54,9 @@ def generate_cache_key(request: RouteRequest) -> str:
     Returns:
         캐시 키 (예: "route:hash_abc123")
     """
-    # 요청 파라미터를 문자열로 결합
-    key_str = f"{request.start.lat},{request.start.lng}|{request.end.lat},{request.end.lng}|{request.preference}|{request.transportation_mode}"
+    # 요청 파라미터를 문자열로 결합 (제외된 위험 유형 포함)
+    excluded_str = ','.join(sorted(request.excluded_hazard_types)) if request.excluded_hazard_types else ''
+    key_str = f"{request.start.lat},{request.start.lng}|{request.end.lat},{request.end.lng}|{request.preference}|{request.transportation_mode}|{excluded_str}"
 
     # SHA256 해시 (처음 16자만 사용)
     key_hash = hashlib.sha256(key_str.encode()).hexdigest()[:16]
@@ -55,29 +71,63 @@ async def calculate_route(request: RouteRequest, db: Session = Depends(get_db)):
 
     1. 캐시 확인 → 있으면 즉시 반환
     2. 없으면 계산 → 캐시에 저장 → 반환
+
+    Args:
+        request: 경로 계산 요청 (출발지, 목적지, 선호도, 이동 수단, 제외할 위험 유형)
+        db: 데이터베이스 세션
+
+    Returns:
+        CalculateRouteResponse: 계산된 경로 목록
+
+    Raises:
+        HTTPException: 400 - 잘못된 요청 (좌표 범위 오류 등)
+        HTTPException: 404 - 경로를 찾을 수 없음
+        HTTPException: 500 - 서버 내부 오류
     """
     start_time = time.time()
+
+    # 입력 유효성 검증
+    if not (-90 <= request.start.lat <= 90) or not (-180 <= request.start.lng <= 180):
+        raise HTTPException(status_code=400, detail="Invalid start coordinates")
+    if not (-90 <= request.end.lat <= 90) or not (-180 <= request.end.lng <= 180):
+        raise HTTPException(status_code=400, detail="Invalid end coordinates")
 
     # 1. 캐시 키 생성
     cache_key = generate_cache_key(request)
 
     # 2. 캐시 확인
-    cached_result = redis_manager.get(cache_key)
-    if cached_result:
-        elapsed_ms = int((time.time() - start_time) * 1000)
-        logger.info(f"캐시 히트! 키={cache_key}, 응답 시간={elapsed_ms}ms")
-        cached_result['cache_hit'] = True
-        cached_result['calculation_time_ms'] = elapsed_ms
-        return CalculateRouteResponse(routes=cached_result.get('routes', []))
+    try:
+        cached_result = redis_manager.get(cache_key)
+        if cached_result:
+            elapsed_ms = int((time.time() - start_time) * 1000)
+            logger.info(f"캐시 히트! 키={cache_key}, 응답 시간={elapsed_ms}ms")
+            cached_result['cache_hit'] = True
+            cached_result['calculation_time_ms'] = elapsed_ms
+            return CalculateRouteResponse(routes=cached_result.get('routes', []))
+    except Exception as cache_error:
+        # 캐시 오류는 치명적이지 않으므로 로그만 남기고 계속 진행
+        logger.warning(f"캐시 조회 실패 (계속 진행): {cache_error}")
 
     # 3. 캐시 미스 → 경로 계산
     logger.info(f"캐시 미스. 경로 계산 시작...")
 
     try:
         # 경로 계산 전에 위험도 업데이트 (최신 위험 정보 반영)
+        # 제외할 위험 유형을 전달하여 필터링된 위험도 계산
         try:
-            await hazard_scorer.update_all_risk_scores()
-            logger.info("위험도 업데이트 완료, 경로 계산 시작")
+            # 유효성 검증: 허용된 위험 유형만 필터링
+            excluded_types = []
+            if request.excluded_hazard_types:
+                excluded_types = [ht for ht in request.excluded_hazard_types if ht in ALLOWED_HAZARD_TYPES]
+                invalid_types = [ht for ht in request.excluded_hazard_types if ht not in ALLOWED_HAZARD_TYPES]
+                if invalid_types:
+                    logger.warning(f"잘못된 위험 유형 무시됨: {invalid_types}")
+
+            await hazard_scorer.update_all_risk_scores(excluded_hazard_types=excluded_types)
+            if excluded_types:
+                logger.info(f"위험도 업데이트 완료 (제외된 유형: {excluded_types}), 경로 계산 시작")
+            else:
+                logger.info("위험도 업데이트 완료, 경로 계산 시작")
         except Exception as e:
             logger.warning(f"경고: 위험도 업데이트 실패 (경로 계산은 계속 진행): {e}")
 
@@ -94,11 +144,18 @@ async def calculate_route(request: RouteRequest, db: Session = Depends(get_db)):
 
         # 에러 체크
         if 'error' in result:
-            return CalculateRouteResponse(routes=[])
-        
+            error_msg = result.get('error', '경로를 찾을 수 없습니다')
+            logger.warning(f"경로 계산 실패: {error_msg}")
+
+            # 위험 필터가 너무 많으면 안내 메시지 추가
+            if excluded_types and len(excluded_types) > 5:
+                error_msg += ' (너무 많은 위험 유형을 제외했을 수 있습니다)'
+
+            raise HTTPException(status_code=404, detail=error_msg)
+
         # 결과 포맷팅 (새로운 형식: routes 배열)
         routes = []
-        if 'routes' in result:
+        if 'routes' in result and len(result['routes']) > 0:
             for route_data in result['routes']:
                 routes.append(RouteResponse(
                     id=route_data.get('id', 'unknown'),
@@ -112,7 +169,16 @@ async def calculate_route(request: RouteRequest, db: Session = Depends(get_db)):
                     waypoints=route_data.get('waypoints', []),
                     polyline=route_data.get('polyline', [])
                 ))
-        
+        else:
+            # 경로가 하나도 없는 경우
+            logger.warning("경로를 찾을 수 없습니다")
+            if excluded_types and len(excluded_types) > 5:
+                raise HTTPException(
+                    status_code=404,
+                    detail='경로를 찾을 수 없습니다 (너무 많은 위험 유형을 제외했을 수 있습니다)'
+                )
+            raise HTTPException(status_code=404, detail='경로를 찾을 수 없습니다')
+
         # 응답 데이터 구성
         response_data = {
             "routes": [r.dict() for r in routes],
@@ -121,8 +187,12 @@ async def calculate_route(request: RouteRequest, db: Session = Depends(get_db)):
         }
 
         # 4. 캐시에 저장 (TTL: 5분)
-        redis_manager.set(cache_key, response_data, ttl=300)
-        logger.info(f"경로 계산 완료 및 캐시 저장. 키={cache_key}, 시간={elapsed_ms}ms, 경로 수={len(routes)}")
+        try:
+            redis_manager.set(cache_key, response_data, ttl=300)
+            logger.info(f"경로 계산 완료 및 캐시 저장. 키={cache_key}, 시간={elapsed_ms}ms, 경로 수={len(routes)}")
+        except Exception as cache_error:
+            # 캐시 저장 실패는 치명적이지 않으므로 로그만 남기고 계속 진행
+            logger.warning(f"캐시 저장 실패 (결과는 반환됨): {cache_error}")
 
         # 디버그: 각 경로의 위험도 로깅
         for i, route in enumerate(routes):

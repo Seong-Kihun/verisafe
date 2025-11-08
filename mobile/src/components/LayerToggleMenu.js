@@ -7,28 +7,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, Modal, StyleSheet, ScrollView } from 'react-native';
 import Icon from './icons/Icon';
 import { Colors, Typography, Spacing } from '../styles';
-import { getHazardColor } from '../styles/colors';
-
-const HAZARD_TYPES = [
-  { id: 'armed_conflict', name: '무력충돌', icon: 'conflict', color: '#DC2626' },
-  { id: 'conflict', name: '충돌', icon: 'conflict', color: '#EF4444' },
-  { id: 'protest_riot', name: '시위/폭동', icon: 'protest', color: '#F59E0B' },
-  { id: 'protest', name: '시위', icon: 'protest', color: '#F97316' },
-  { id: 'checkpoint', name: '검문소', icon: 'checkpoint', color: '#FF6B6B' },
-  { id: 'road_damage', name: '도로 손상', icon: 'roadDamage', color: '#F97316' },
-  { id: 'natural_disaster', name: '자연재해', icon: 'naturalDisaster', color: '#DC2626' },
-  { id: 'flood', name: '홍수', icon: 'naturalDisaster', color: '#3B82F6' },
-  { id: 'landslide', name: '산사태', icon: 'naturalDisaster', color: '#92400E' },
-  { id: 'other', name: '기타', icon: 'other', color: '#6B7280' },
-];
-
-// Phase 4: 시간대 필터
-const TIME_FILTERS = [
-  { id: 'all', name: '전체', hours: null },
-  { id: '24h', name: '24시간', hours: 24 },
-  { id: '48h', name: '48시간', hours: 48 },
-  { id: '7d', name: '7일', hours: 168 },
-];
+import { HAZARD_TYPES, TIME_FILTERS } from '../constants/hazardTypes';
 
 export default function LayerToggleMenu({
   visible,
