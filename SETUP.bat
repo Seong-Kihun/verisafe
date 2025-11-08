@@ -1,17 +1,16 @@
 @echo off
-chcp 65001 >nul
 cls
 
 echo ================================================
-echo   VeriSafe - 초기 설정 (한 번만 실행)
+echo   VeriSafe - Initial Setup (Run Once)
 echo ================================================
 echo.
-echo 이 스크립트는 다음 작업을 수행합니다:
-echo   1. Docker 데이터베이스 시작
-echo   2. Python 패키지 설치
-echo   3. 환경 설정 및 데이터베이스 초기화
+echo This script will:
+echo   1. Start Docker databases
+echo   2. Install Python packages
+echo   3. Setup environment and initialize database
 echo.
-echo 소요 시간: 약 10분
+echo Estimated time: 10 minutes
 echo.
 pause
 cls
@@ -19,41 +18,41 @@ cls
 cd /d "%~dp0"
 
 REM ============================================
-REM STEP 1: Docker 데이터베이스 시작
+REM STEP 1: Start Docker Databases
 REM ============================================
 echo.
 echo ================================================
-echo   [1/3] Docker 데이터베이스 시작
+echo   [1/3] Starting Docker Databases
 echo ================================================
 echo.
 
-echo Docker 확인 중...
+echo Checking Docker...
 docker --version >nul 2>&1
 if errorlevel 1 (
-    echo [오류] Docker가 설치되지 않았습니다!
-    echo Docker Desktop을 설치해주세요:
+    echo [ERROR] Docker is not installed!
+    echo Please install Docker Desktop:
     echo https://www.docker.com/products/docker-desktop/
     echo.
     pause
     exit /b 1
 )
 
-echo Docker 발견! 데이터베이스 시작 중...
+echo Docker found! Starting databases...
 docker-compose up -d
 
 if errorlevel 1 (
     echo.
-    echo [경고] Docker 컨테이너 시작에 문제가 있을 수 있습니다.
-    echo 계속 진행합니다...
+    echo [WARNING] There might be issues starting Docker containers.
+    echo Continuing anyway...
     echo.
 )
 
 echo.
-echo 데이터베이스 준비 대기 중 (30초)...
+echo Waiting for databases to be ready (30 seconds)...
 timeout /t 30 /nobreak >nul
 
 echo.
-echo [완료] 데이터베이스 시작됨!
+echo [DONE] Databases started!
 echo   - PostgreSQL: localhost:5432
 echo   - Redis: localhost:6379
 echo   - PgAdmin: http://localhost:5050
@@ -62,83 +61,83 @@ pause
 cls
 
 REM ============================================
-REM STEP 2: Python 패키지 설치
+REM STEP 2: Install Python Packages
 REM ============================================
 echo.
 echo ================================================
-echo   [2/3] Python 패키지 설치
-echo   (5-10분 소요, 잠시만 기다려주세요...)
+echo   [2/3] Installing Python Packages
+echo   (5-10 minutes, please wait...)
 echo ================================================
 echo.
 
 cd backend
 
-echo Python 버전 확인 중...
+echo Checking Python version...
 python --version
 if errorlevel 1 (
-    echo [오류] Python이 설치되지 않았습니다!
-    echo Python 3.10 이상을 설치해주세요:
+    echo [ERROR] Python is not installed!
+    echo Please install Python 3.10 or higher:
     echo https://www.python.org/downloads/
     pause
     exit /b 1
 )
 
 echo.
-echo Python 버전 체크 (3.10 이상 필요)...
+echo Checking Python version (3.10+ required)...
 python -c "import sys; exit(0 if sys.version_info >= (3, 10) else 1)"
 if errorlevel 1 (
-    echo [경고] Python 3.10 이상을 권장합니다!
-    echo 현재 버전에서는 호환성 문제가 발생할 수 있습니다.
+    echo [WARNING] Python 3.10+ is recommended!
+    echo Compatibility issues may occur with current version.
     echo.
     pause
 )
 
 echo.
-echo 가상환경 생성 중...
+echo Creating virtual environment...
 if not exist venv (
     python -m venv venv
-    echo 가상환경 생성 완료!
+    echo Virtual environment created!
 ) else (
-    echo 가상환경이 이미 존재합니다.
+    echo Virtual environment already exists.
 )
 
 echo.
-echo 가상환경 활성화 중...
+echo Activating virtual environment...
 call venv\Scripts\activate.bat
 
 echo.
-echo 패키지 설치 중 (5-10분 소요)...
-echo ☕ 커피 한 잔 하고 오세요!
+echo Installing packages (5-10 minutes)...
+echo Take a coffee break!
 echo.
 python -m pip install --upgrade pip --quiet
 pip install -r requirements.txt
 
 if errorlevel 1 (
     echo.
-    echo [오류] 패키지 설치 실패!
-    echo requirements.txt를 확인해주세요.
+    echo [ERROR] Package installation failed!
+    echo Please check requirements.txt
     pause
     exit /b 1
 )
 
 echo.
-echo [완료] Python 패키지 설치 완료!
+echo [DONE] Python packages installed!
 echo.
 pause
 cls
 
 REM ============================================
-REM STEP 3: 환경 설정 및 데이터베이스 초기화
+REM STEP 3: Environment Setup and Database Init
 REM ============================================
 echo.
 echo ================================================
-echo   [3/3] 환경 설정 및 데이터베이스 초기화
+echo   [3/3] Environment Setup and Database Init
 echo ================================================
 echo.
 
-echo .env 파일 확인 중...
+echo Checking .env file...
 if not exist .env (
-    echo .env 파일 생성 중...
+    echo Creating .env file...
     (
         echo # VeriSafe Environment Configuration - Auto-generated
         echo # Generated on: %date% %time%
@@ -183,40 +182,48 @@ if not exist .env (
         echo SENTINEL_CLIENT_ID=
         echo SENTINEL_CLIENT_SECRET=
     ) > .env
-    echo .env 파일 생성 완료!
+    echo .env file created!
 ) else (
-    echo .env 파일이 이미 존재합니다.
+    echo .env file already exists.
 )
 
 echo.
-echo 가상환경 활성화 중...
+echo Activating virtual environment...
 call venv\Scripts\activate.bat
 
 echo.
-echo 데이터베이스 테이블 생성 중...
-python init_db.py
+echo Initializing database tables...
+python init_database.py
 
 if errorlevel 1 (
     echo.
-    echo [경고] 데이터베이스 초기화에 문제가 있을 수 있습니다.
-    echo 하지만 계속 진행합니다...
+    echo [WARNING] Database initialization may have issues.
+    echo But continuing anyway...
     echo.
 )
+
+echo.
+echo Creating hazard scoring rules...
+python app\scripts\create_hazard_scoring_rules.py
+
+echo.
+echo Generating sample data...
+python app\scripts\create_sample_hazards.py
 
 cd ..
 
 echo.
 echo ================================================
-echo   ✅ 초기 설정 완료!
+echo   Setup Complete!
 echo ================================================
 echo.
-echo 다음 단계:
-echo   1. START.bat 실행하여 서버 시작
+echo Next Steps:
+echo   1. Run START.bat to start the server
 echo.
-echo 서비스 정보:
-echo   - API 문서: http://localhost:8000/docs
-echo   - 프론트엔드: http://localhost:8081
-echo   - 데이터베이스 관리: http://localhost:5050
+echo Service Information:
+echo   - API Docs: http://localhost:8000/docs
+echo   - Frontend: http://localhost:8081
+echo   - Database Admin: http://localhost:5050
 echo     Email: admin@verisafe.com
 echo     Password: admin2025
 echo.
