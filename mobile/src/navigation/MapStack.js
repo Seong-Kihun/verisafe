@@ -4,13 +4,18 @@
  */
 
 import React from 'react';
+import { Platform } from 'react-native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Colors, Typography } from '../styles';
 
 import MapScreen from '../screens/MapScreen';
 import SearchScreen from '../screens/SearchScreen';
 import RoutePlanningScreen from '../screens/RoutePlanningScreen';
-import NavigationScreen from '../screens/NavigationScreen';
+
+// NavigationScreen은 네이티브 전용 (react-native-maps 사용)
+const NavigationScreen = Platform.OS !== 'web'
+  ? require('../screens/NavigationScreen').default
+  : null;
 
 const Stack = createStackNavigator();
 
@@ -98,14 +103,17 @@ export default function MapStack() {
           title: '경로 찾기',
         }}
       />
-      <Stack.Screen
-        name="NavigationScreen"
-        component={NavigationScreen}
-        options={{
-          headerShown: false,
-          presentation: 'fullScreenModal',
-        }}
-      />
+      {/* NavigationScreen은 네이티브 전용 */}
+      {Platform.OS !== 'web' && NavigationScreen && (
+        <Stack.Screen
+          name="NavigationScreen"
+          component={NavigationScreen}
+          options={{
+            headerShown: false,
+            presentation: 'fullScreenModal',
+          }}
+        />
+      )}
     </Stack.Navigator>
   );
 }
