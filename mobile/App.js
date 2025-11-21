@@ -8,6 +8,7 @@ import { RoutePlanningProvider } from './src/contexts/RoutePlanningContext';
 import { HazardFilterProvider } from './src/contexts/HazardFilterContext';
 import { OnboardingProvider } from './src/contexts/OnboardingContext';
 import { NavigationProvider } from './src/contexts/NavigationContext';
+import EmergencyGestureDetector from './src/components/EmergencyGestureDetector';
 
 // i18n 다국어 지원 초기화
 import './src/i18n';
@@ -21,7 +22,9 @@ export default function App() {
           <MapProvider>
             <RoutePlanningProvider>
               <NavigationProvider>
-                <AppNavigator />
+                <EmergencyGestureDetector>
+                  <AppNavigator />
+                </EmergencyGestureDetector>
               </NavigationProvider>
             </RoutePlanningProvider>
           </MapProvider>

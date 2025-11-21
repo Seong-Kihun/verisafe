@@ -70,9 +70,10 @@ export default function RouteComparison({
     return best;
   }, null);
 
-  // 위험 구간 수 계산 (간단히 위험 점수 / 2)
+  // 위험 구간 수 계산
+  // Note: map 내부에서 사용하므로 hook 사용 불가, 함수로 유지
   const getHazardZoneCount = (route) => {
-    return Math.floor(route.risk_score / 2);
+    return route?.hazard_count || 0;
   };
 
   const renderBarGraph = (label, value, maxValue, color) => {
@@ -105,7 +106,8 @@ export default function RouteComparison({
         {routes.map((route, index) => {
           const isSelected = selectedRoute?.id === route.id;
           const isRecommended = route.id === recommendedRoute?.id;
-          const safetyGrade = getSafetyGrade(route.risk_score);
+          const hazardCount = route.hazard_count || 0;
+          const safetyGrade = getSafetyGrade(route.risk_score, hazardCount);
           const gradeColor = getGradeColor(safetyGrade);
           const routeColor = getRouteColor(route.type);
 

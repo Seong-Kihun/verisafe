@@ -10,6 +10,7 @@ from app.models.hazard import Hazard
 from app.models.report import Report
 from app.models.user import User
 from app.services.satellite.image_analyzer import satellite_image_analyzer
+from app.utils.helpers import db_transaction
 
 router = APIRouter()
 
@@ -187,36 +188,37 @@ async def get_pending_reports(limit: int = 20, db: Session = Depends(get_db)):
 async def verify_report(report_id: str, status: str, db: Session = Depends(get_db)):
     """
     제보 검증 (승인/거부)
-    
+
     Args:
         report_id: 제보 ID
         status: 'verified' or 'rejected'
     """
     if status not in ['verified', 'rejected']:
         raise HTTPException(status_code=400, detail="상태는 'verified' 또는 'rejected'여야 합니다")
-    
+
     try:
         from uuid import UUID
         report = db.query(Report).filter(Report.id == UUID(report_id)).first()
-        
+
         if not report:
             raise HTTPException(status_code=404, detail="제보를 찾을 수 없습니다")
-        
-        report.status = status
-        report.verified_at = datetime.utcnow()
-        # TODO: report.verified_by = current_admin_user_id
-        
-        db.commit()
-        
+
+        with db_transaction(db, "제보 검증"):
+            report.status = status
+            report.verified_at = datetime.utcnow()
+            # TODO: report.verified_by = current_admin_user_id
+
         return {
             "status": "success",
             "report_id": report_id,
             "new_status": status,
             "verified_at": report.verified_at.isoformat()
         }
-        
+
     except ValueError:
         raise HTTPException(status_code=400, detail="유효하지 않은 report_id 형식")
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"검증 오류: {str(e)}")
 
@@ -244,6 +246,70 @@ async def get_system_health(db: Session = Depends(get_db)):
             "timestamp": datetime.utcnow().isoformat()
         }
     }
+
+
+@router.get("/system/graph")
+async def get_graph_status():
+    """GraphManager 상태 확인"""
+    from app.services.graph_manager import GraphManager
+
+    graph_manager = GraphManager()
+    graph = graph_manager.get_graph()
+
+    if graph:
+        # Check risk scores
+        edges_with_risk = 0
+        total_risk = 0
+        for u, v, data in graph.edges(data=True):
+            risk = data.get('risk_score', 0)
+            if risk > 0:
+                edges_with_risk += 1
+                total_risk += risk
+
+        return {
+            "status": "success",
+            "graph": {
+                "nodes": graph.number_of_nodes(),
+                "edges": graph.number_of_edges(),
+                "initialized": graph.number_of_nodes() > 10,
+                "edges_with_risk": edges_with_risk,
+                "avg_risk": round(total_risk / graph.number_of_edges(), 2) if graph.number_of_edges() > 0 else 0
+            }
+        }
+    else:
+        return {
+            "status": "error",
+            "message": "Graph not initialized"
+        }
+
+
+@router.post("/system/update-risk-scores")
+async def update_risk_scores():
+    """위험도 업데이트 강제 실행"""
+    from app.services.graph_manager import GraphManager
+    from app.services.hazard_scorer import HazardScorer
+    from app.database import SessionLocal
+
+    try:
+        graph_manager = GraphManager()
+        hazard_scorer = HazardScorer(graph_manager, session_factory=SessionLocal)
+
+        await hazard_scorer.update_all_risk_scores()
+
+        graph = graph_manager.get_graph()
+        edges_with_risk = 0
+        for u, v, data in graph.edges(data=True):
+            if data.get('risk_score', 0) > 0:
+                edges_with_risk += 1
+
+        return {
+            "status": "success",
+            "message": "Risk scores updated successfully",
+            "edges_with_risk": edges_with_risk,
+            "total_edges": graph.number_of_edges()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating risk scores: {str(e)}")
 
 
 @router.post("/satellite/analyze-demo")

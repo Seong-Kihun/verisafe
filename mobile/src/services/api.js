@@ -1,11 +1,12 @@
 /** API 서비스 */
 import axios from 'axios';
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 
 // API 기본 URL (환경별 설정)
 const getApiBaseUrl = () => {
   // 환경 변수에서 API URL 가져오기 (app.json의 extra 설정)
-  const envApiUrl = process.env.EXPO_PUBLIC_API_URL;
+  const envApiUrl = Constants.expoConfig?.extra?.EXPO_PUBLIC_API_URL || process.env.EXPO_PUBLIC_API_URL;
 
   if (envApiUrl) {
     return envApiUrl;
@@ -23,7 +24,7 @@ const getApiBaseUrl = () => {
 
   // 모바일 개발 환경 - 기본값 사용 (테스트/시연용)
   // 실제 배포 시: EXPO_PUBLIC_API_URL 환경 변수 설정 또는 아래 IP를 PC IP로 변경
-  return 'http://192.168.104.30:8000';
+  return 'http://172.20.10.3:8000';
 };
 
 const API_BASE_URL = getApiBaseUrl();

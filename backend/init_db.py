@@ -3,6 +3,7 @@ from app.database import Base, engine, SessionLocal
 from app.models import User, Road, Hazard, HazardScoringRule, Report, Landmark
 from app.models.hazard import Hazard as HazardModel
 from app.models.landmark import Landmark as LandmarkModel
+from app.models.safe_haven import SafeHaven
 from datetime import datetime, timedelta
 import uuid
 
@@ -166,7 +167,7 @@ def seed_data():
                 latitude=4.8620,
                 longitude=31.5750,
                 radius=10.0,
-                country='South Sudan',
+                country='SS',
                 source='system',
                 description='총격전 발생 - 매우 위험한 지역',
                 start_date=now - timedelta(hours=2),
@@ -179,7 +180,7 @@ def seed_data():
                 latitude=4.8550,
                 longitude=31.5800,
                 radius=8.0,
-                country='South Sudan',
+                country='SS',
                 source='external_api',
                 description='폭격 위험 지역',
                 start_date=now - timedelta(hours=12),
@@ -194,7 +195,7 @@ def seed_data():
                 latitude=4.8650,
                 longitude=31.5850,
                 radius=5.0,
-                country='South Sudan',
+                country='SS',
                 source='user_report',
                 description='대규모 시위 진행 중 - 폭력 가능성',
                 start_date=now - timedelta(hours=3),
@@ -207,7 +208,7 @@ def seed_data():
                 latitude=4.8480,
                 longitude=31.5650,
                 radius=4.0,
-                country='South Sudan',
+                country='SS',
                 source='system',
                 description='학생 시위 예상 지역',
                 start_date=now - timedelta(hours=1),
@@ -220,7 +221,7 @@ def seed_data():
                 latitude=4.8520,
                 longitude=31.5900,
                 radius=3.5,
-                country='South Sudan',
+                country='SS',
                 source='user_report',
                 description='소규모 집회 - 주의 필요',
                 start_date=now - timedelta(hours=5),
@@ -235,7 +236,7 @@ def seed_data():
                 latitude=4.8500,
                 longitude=31.5800,
                 radius=2.0,
-                country='South Sudan',
+                country='SS',
                 source='system',
                 description='불법 검문소 - 매우 위험',
                 start_date=now - timedelta(hours=6),
@@ -248,7 +249,7 @@ def seed_data():
                 latitude=4.8600,
                 longitude=31.5750,
                 radius=2.0,
-                country='South Sudan',
+                country='SS',
                 source='system',
                 description='불법 검문소 설치됨',
                 start_date=now - timedelta(hours=10),
@@ -261,7 +262,7 @@ def seed_data():
                 latitude=4.8450,
                 longitude=31.5720,
                 radius=1.5,
-                country='South Sudan',
+                country='SS',
                 source='user_report',
                 description='검문소 - 통행 지연 가능',
                 start_date=now - timedelta(hours=8),
@@ -274,7 +275,7 @@ def seed_data():
                 latitude=4.8570,
                 longitude=31.5680,
                 radius=1.8,
-                country='South Sudan',
+                country='SS',
                 source='system',
                 description='일반 검문소',
                 start_date=now - timedelta(hours=4),
@@ -289,7 +290,7 @@ def seed_data():
                 latitude=4.8550,
                 longitude=31.5700,
                 radius=0.1,
-                country='South Sudan',
+                country='SS',
                 source='user_report',
                 description='큰 구덩이 - 차량 통행 불가',
                 start_date=now - timedelta(hours=1),
@@ -302,7 +303,7 @@ def seed_data():
                 latitude=4.8630,
                 longitude=31.5780,
                 radius=0.15,
-                country='South Sudan',
+                country='SS',
                 source='system',
                 description='도로 유실 - 우회 필요',
                 start_date=now - timedelta(hours=24),
@@ -315,7 +316,7 @@ def seed_data():
                 latitude=4.8470,
                 longitude=31.5820,
                 radius=0.08,
-                country='South Sudan',
+                country='SS',
                 source='user_report',
                 description='도로 파손 - 천천히 통행',
                 start_date=now - timedelta(hours=12),
@@ -328,7 +329,7 @@ def seed_data():
                 latitude=4.8580,
                 longitude=31.5650,
                 radius=0.05,
-                country='South Sudan',
+                country='SS',
                 source='system',
                 description='작은 구덩이',
                 start_date=now - timedelta(hours=6),
@@ -336,85 +337,83 @@ def seed_data():
                 verified=True
             ),
             
-            # 자연재해 (높은 위험도) - South Sudan
+            # 무력충돌 추가 (South Sudan - 다양한 위치)
             HazardModel(
-                hazard_type='natural_disaster',
-                risk_score=90,
+                hazard_type='armed_conflict',
+                risk_score=92,
                 latitude=4.8700,
                 longitude=31.5600,
-                radius=5.0,
-                country='South Sudan',
+                radius=12.0,
+                country='SS',
                 source='external_api',
-                description='홍수 위험 지역',
-                start_date=now - timedelta(hours=48),
-                end_date=now + timedelta(hours=120),
+                description='무력충돌 지역 - 교전 발생',
+                start_date=now - timedelta(hours=4),
+                end_date=now + timedelta(hours=68),
                 verified=True
             ),
             HazardModel(
-                hazard_type='natural_disaster',
-                risk_score=85,
+                hazard_type='armed_conflict',
+                risk_score=88,
                 latitude=4.8400,
                 longitude=31.5900,
-                radius=4.0,
-                country='South Sudan',
+                radius=9.0,
+                country='SS',
                 source='system',
-                description='토양 침식 위험',
-                start_date=now - timedelta(hours=72),
-                end_date=now + timedelta(hours=96),
+                description='교전 가능 지역 - 접근 금지',
+                start_date=now - timedelta(hours=8),
+                end_date=now + timedelta(hours=64),
                 verified=True
             ),
             HazardModel(
-                hazard_type='natural_disaster',
-                risk_score=80,
+                hazard_type='armed_conflict',
+                risk_score=94,
                 latitude=4.8660,
                 longitude=31.5720,
-                radius=3.0,
-                country='South Sudan',
+                radius=11.0,
+                country='SS',
                 source='user_report',
-                description='폭우로 인한 도로 침수',
-                start_date=now - timedelta(hours=24),
-                end_date=now + timedelta(hours=144),
+                description='격렬한 총격전 - 극도로 위험',
+                start_date=now - timedelta(hours=1),
+                end_date=now + timedelta(hours=71),
                 verified=True
             ),
-            
-            # 기타 (다양한 위험도) - South Sudan
             HazardModel(
-                hazard_type='other',
-                risk_score=55,
+                hazard_type='armed_conflict',
+                risk_score=91,
                 latitude=4.8510,
                 longitude=31.5740,
-                radius=3.0,
-                country='South Sudan',
-                source='user_report',
-                description='의심스러운 활동 감지',
-                start_date=now - timedelta(hours=2),
-                end_date=now + timedelta(hours=46),
+                radius=10.0,
+                country='SS',
+                source='external_api',
+                description='무장 단체 출몰 - 매우 위험',
+                start_date=now - timedelta(hours=6),
+                end_date=now + timedelta(hours=66),
                 verified=True
             ),
             HazardModel(
-                hazard_type='other',
-                risk_score=50,
+                hazard_type='armed_conflict',
+                risk_score=93,
                 latitude=4.8560,
                 longitude=31.5830,
-                radius=2.5,
-                country='South Sudan',
+                radius=8.5,
+                country='SS',
                 source='system',
-                description='일반적인 주의 필요 지역',
-                start_date=now - timedelta(hours=4),
-                end_date=now + timedelta(hours=44),
+                description='공격 위험 - 즉시 대피 권고',
+                start_date=now - timedelta(hours=3),
+                end_date=now + timedelta(hours=69),
                 verified=True
             ),
             HazardModel(
-                hazard_type='other',
-                risk_score=45,
+                hazard_type='armed_conflict',
+                risk_score=89,
                 latitude=4.8490,
                 longitude=31.5770,
-                radius=2.0,
-                country='South Sudan',
+                radius=7.0,
+                country='SS',
                 source='user_report',
-                description='야간 통행 주의',
-                start_date=now - timedelta(hours=1),
-                end_date=now + timedelta(hours=47),
+                description='폭발 및 총성 보고됨',
+                start_date=now - timedelta(hours=5),
+                end_date=now + timedelta(hours=67),
                 verified=True
             ),
 
@@ -425,7 +424,7 @@ def seed_data():
                 latitude=-1.2850,
                 longitude=36.8200,
                 radius=3.0,
-                country='Kenya',
+                country='KE',
                 source='external_api',
                 description='나이로비 중심가 시위 진행 중',
                 start_date=now - timedelta(hours=6),
@@ -438,7 +437,7 @@ def seed_data():
                 latitude=-1.2900,
                 longitude=36.8150,
                 radius=1.5,
-                country='Kenya',
+                country='KE',
                 source='system',
                 description='경찰 검문소 - 교통 혼잡',
                 start_date=now - timedelta(hours=3),
@@ -448,16 +447,16 @@ def seed_data():
 
             # Ethiopia 데이터 추가 (Addis Ababa 중심: 9.0320, 38.7469)
             HazardModel(
-                hazard_type='natural_disaster',
-                risk_score=85,
+                hazard_type='armed_conflict',
+                risk_score=90,
                 latitude=9.0300,
                 longitude=38.7500,
-                radius=6.0,
-                country='Ethiopia',
+                radius=8.0,
+                country='ET',
                 source='external_api',
-                description='홍수 경보 - 아디스아바바 외곽',
-                start_date=now - timedelta(hours=24),
-                end_date=now + timedelta(hours=144),
+                description='무력충돌 - 아디스아바바 외곽',
+                start_date=now - timedelta(hours=10),
+                end_date=now + timedelta(hours=62),
                 verified=True
             ),
             HazardModel(
@@ -466,7 +465,7 @@ def seed_data():
                 latitude=9.0350,
                 longitude=38.7400,
                 radius=0.2,
-                country='Ethiopia',
+                country='ET',
                 source='user_report',
                 description='도로 유실 - 통행 불가',
                 start_date=now - timedelta(hours=12),
@@ -527,7 +526,156 @@ def seed_data():
         db.add_all(dummy_landmarks)
         db.commit()
         print(f"[OK] Inserted {len(dummy_landmarks)} dummy landmarks")
-        
+
+        # 5. 더미 안전 대피처 (주바 지역)
+        print("Inserting dummy safe havens...")
+
+        dummy_safe_havens = [
+            # 대사관
+            SafeHaven(
+                name='US Embassy - Juba',
+                category='embassy',
+                latitude=4.8530,
+                longitude=31.5920,
+                address='Kololo Road, Juba',
+                phone='+211-912-105-188',
+                hours='08:00-17:00 (Mon-Fri)',
+                verified=True,
+                notes='미국 대사관 - 긴급 상황 시 미국 시민 보호'
+            ),
+            SafeHaven(
+                name='Korean Embassy - South Sudan',
+                category='embassy',
+                latitude=4.8545,
+                longitude=31.5935,
+                address='Thong Ping Area, Juba',
+                phone='+211-920-000-000',
+                hours='09:00-18:00 (Mon-Fri)',
+                verified=True,
+                notes='대한민국 대사관 - 한국 국민 보호'
+            ),
+            SafeHaven(
+                name='UK Embassy - Juba',
+                category='embassy',
+                latitude=4.8510,
+                longitude=31.5945,
+                address='EU Compound, Juba',
+                phone='+211-912-185-000',
+                hours='08:00-16:00 (Mon-Fri)',
+                verified=True,
+                notes='영국 대사관'
+            ),
+
+            # 병원
+            SafeHaven(
+                name='Juba Teaching Hospital',
+                category='hospital',
+                latitude=4.8470,
+                longitude=31.5800,
+                address='Hospital Road, Juba',
+                phone='+211-955-000-000',
+                hours='24시간 운영',
+                capacity=500,
+                verified=True,
+                notes='주바 대학병원 - 24시간 응급실 운영'
+            ),
+            SafeHaven(
+                name='Al-Sabah Children Hospital',
+                category='hospital',
+                latitude=4.8520,
+                longitude=31.5875,
+                address='Munuki Area, Juba',
+                phone='+211-955-111-000',
+                hours='24시간 운영',
+                capacity=200,
+                verified=True,
+                notes='어린이 병원 - 소아과 전문'
+            ),
+
+            # UN 시설
+            SafeHaven(
+                name='UN House - Juba',
+                category='un',
+                latitude=4.8550,
+                longitude=31.5950,
+                address='UN Compound, Juba',
+                phone='+211-912-000-000',
+                hours='24시간 운영',
+                capacity=1000,
+                verified=True,
+                notes='UN 주바 사무소 - 민간인 보호 가능'
+            ),
+            SafeHaven(
+                name='UNMISS Tomping Base',
+                category='un',
+                latitude=4.8600,
+                longitude=31.5700,
+                address='Tomping Area, Juba',
+                phone='+211-912-000-100',
+                hours='24시간 운영',
+                capacity=5000,
+                verified=True,
+                notes='유엔 남수단 임무단 기지 - 대규모 민간인 보호 시설'
+            ),
+
+            # 경찰서
+            SafeHaven(
+                name='Juba Central Police Station',
+                category='police',
+                latitude=4.8505,
+                longitude=31.5815,
+                address='Central Juba',
+                phone='+211-977-000-000',
+                hours='24시간 운영',
+                verified=True,
+                notes='주바 중앙 경찰서'
+            ),
+
+            # 안전 호텔
+            SafeHaven(
+                name='Juba Grand Hotel',
+                category='hotel',
+                latitude=4.8525,
+                longitude=31.5895,
+                address='Munuki, Juba',
+                phone='+211-956-000-000',
+                hours='24시간 운영',
+                capacity=150,
+                verified=True,
+                notes='안전한 숙박 시설 - 보안 강화'
+            ),
+            SafeHaven(
+                name='Crown Hotel Juba',
+                category='hotel',
+                latitude=4.8520,
+                longitude=31.5900,
+                address='Hai Referendum, Juba',
+                phone='+211-955-222-000',
+                hours='24시간 운영',
+                capacity=100,
+                verified=True,
+                notes='시내 중심 호텔 - 보안 시설 완비'
+            ),
+
+            # 대피소
+            SafeHaven(
+                name='Red Cross Emergency Shelter',
+                category='shelter',
+                latitude=4.8480,
+                longitude=31.5850,
+                address='Kator Area, Juba',
+                phone='+211-955-333-000',
+                hours='24시간 운영',
+                capacity=300,
+                verified=True,
+                notes='적십자 긴급 대피소 - 무료 제공'
+            ),
+        ]
+
+        db.add_all(dummy_safe_havens)
+        db.commit()
+        print(f"[OK] Inserted {len(dummy_safe_havens)} dummy safe havens")
+
         print("\n[SUCCESS] Database initialized successfully!")
         
     except Exception as e:

@@ -43,14 +43,22 @@ export const OnboardingProvider = ({ children }) => {
   }, []);
 
   const checkOnboardingStatus = async () => {
-    try {
-      const completed = await onboardingStorage.isCompleted();
-      setIsOnboardingCompleted(completed);
-    } catch (error) {
-      console.error('Failed to check onboarding status:', error);
-    } finally {
-      setLoading(false);
-    }
+    // 개발 중: 항상 온보딩 표시
+    setIsOnboardingCompleted(false);
+    setLoading(false);
+    return;
+
+    // 원래 로직 (프로덕션에서 사용 시 위 3줄 제거)
+    // try {
+    //   const completed = await onboardingStorage.isCompleted();
+    //   setIsOnboardingCompleted(completed);
+    // } catch (error) {
+    //   console.error('[OnboardingContext] Failed to check onboarding status:', error);
+    //   // 오류 시 온보딩 표시 (안전한 기본값)
+    //   setIsOnboardingCompleted(false);
+    // } finally {
+    //   setLoading(false);
+    // }
   };
 
   // 온보딩 데이터 업데이트

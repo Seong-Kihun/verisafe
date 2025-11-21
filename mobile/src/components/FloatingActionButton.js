@@ -21,6 +21,10 @@ export default function FloatingActionButton({ style }) {
       style={[styles.fab, style]}
       onPress={handlePress}
       activeOpacity={0.8}
+      accessible={true}
+      accessibilityRole="button"
+      accessibilityLabel="경로 찾기"
+      accessibilityHint="두 번 탭하여 경로 계획 화면으로 이동하세요"
     >
       <Icon name="route" size={28} color={Colors.textInverse} />
     </TouchableOpacity>
@@ -30,7 +34,7 @@ export default function FloatingActionButton({ style }) {
 const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
-    right: Spacing.lg,
+    right: Spacing.xl,
     bottom: Spacing.xl,
     width: 56,
     height: 56,

@@ -186,6 +186,11 @@ export default function SafetyIndicator({ userLocation, onPress }) {
           style={[styles.compactContainer, { backgroundColor: config.bgColor, borderColor: config.color }]}
           onPress={handlePress}
           activeOpacity={0.8}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel={`안전도: ${config.title}`}
+          accessibilityHint="두 번 탭하여 상세 정보를 확인하세요"
+          accessibilityState={{ expanded: false }}
         >
           <Icon name={config.icon} size={20} color={config.color} />
           <Text style={[styles.compactTitle, { color: config.color }]}>{config.title}</Text>
@@ -202,6 +207,11 @@ export default function SafetyIndicator({ userLocation, onPress }) {
         style={[styles.container, { backgroundColor: config.bgColor }]}
         onPress={handlePress}
         activeOpacity={0.8}
+        accessible={true}
+        accessibilityRole="button"
+        accessibilityLabel={`안전도: ${config.title}. ${config.subtitle}`}
+        accessibilityHint="두 번 탭하여 축소하세요"
+        accessibilityState={{ expanded: true }}
       >
         <View style={styles.iconContainer}>
           <Icon name={config.icon} size={24} color={config.color} />
@@ -226,7 +236,7 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     borderRadius: 12,
     marginHorizontal: Spacing.md,
-    marginTop: Spacing.sm,
+    marginTop: Spacing.md,
     shadowColor: Colors.shadowDark,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -256,7 +266,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderRadius: 20,
     marginHorizontal: Spacing.md,
-    marginTop: Spacing.sm,
+    marginTop: Spacing.md,
     borderWidth: 1.5,
     shadowColor: Colors.shadowDark,
     shadowOffset: { width: 0, height: 1 },

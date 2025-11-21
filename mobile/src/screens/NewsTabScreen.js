@@ -23,9 +23,7 @@ import { useMapContext } from '../contexts/MapContext';
 const HAZARD_TYPE_IDS = [
   'all',
   'armed_conflict',
-  'conflict',
   'protest_riot',
-  'protest',
   'checkpoint',
   'road_damage',
   'natural_disaster',

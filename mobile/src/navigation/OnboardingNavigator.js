@@ -25,16 +25,28 @@ export default function OnboardingNavigator() {
       screenOptions={{
         headerShown: false,
         cardStyle: { backgroundColor: Colors.background },
-        gestureEnabled: false, // 뒤로가기 제스처 비활성화 (온보딩 순서 보장)
+        gestureEnabled: true, // 뒤로가기 제스처 활성화
       }}
     >
-      <Stack.Screen name="Welcome" component={WelcomeScreen} />
+      <Stack.Screen
+        name="Welcome"
+        component={WelcomeScreen}
+        options={{
+          gestureEnabled: false, // 첫 화면은 뒤로가기 불가
+        }}
+      />
       <Stack.Screen name="LanguageSelect" component={LanguageSelectScreen} />
       <Stack.Screen name="CountrySelect" component={CountrySelectScreen} />
       <Stack.Screen name="ProfileSetup" component={ProfileSetupScreen} />
       <Stack.Screen name="Permission" component={PermissionScreen} />
       <Stack.Screen name="EmergencyContact" component={EmergencyContactScreen} />
-      <Stack.Screen name="Complete" component={CompleteScreen} />
+      <Stack.Screen
+        name="Complete"
+        component={CompleteScreen}
+        options={{
+          gestureEnabled: false, // 완료 화면은 뒤로가기 불가
+        }}
+      />
     </Stack.Navigator>
   );
 }

@@ -25,14 +25,18 @@ export default function SearchBar({ onPress, placeholder = '어디로 갈까요?
         style={styles.searchBar}
         onPress={onPress}
         activeOpacity={0.8}
+        accessible={true}
+        accessibilityRole="search"
+        accessibilityLabel={value ? `선택된 장소: ${value}` : placeholder}
+        accessibilityHint="두 번 탭하여 장소 검색 화면을 여세요"
       >
         <Icon name="search" size={20} color={Colors.textSecondary} />
         <View style={styles.searchContent}>
-          <Text 
+          <Text
             style={[
               styles.placeholder,
               { color: value ? Colors.textPrimary : Colors.textTertiary }
-            ]} 
+            ]}
             numberOfLines={1}
           >
             {value || placeholder}

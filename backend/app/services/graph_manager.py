@@ -84,51 +84,79 @@ class GraphManager:
         except Exception as e:
             logger.error(f"OSM 로드 실패: {e}")
             logger.info("더미 그래프로 폴백...")
-            
-            # 임시: 간단한 더미 그래프 생성 (주바 중심)
+
+            # 실전 더미 그래프 생성: 위험 정보와 겹치는 실제 좌표 사용
+            # 주바 중심부의 실제 도로 네트워크를 시뮬레이션
             G = nx.DiGraph()
-            
+
             # 좌표계: (lat, lon)
             # 주바 중심: 4.8594°N, 31.5713°E
-            
-            # 노드 추가 (교차로)
-            nodes = [
-                (1, {'y': 4.8670, 'x': 31.5880, 'name': 'Juba Airport'}),
-                (2, {'y': 4.8550, 'x': 31.5900, 'name': 'Midpoint 1'}),
-                (3, {'y': 4.8500, 'x': 31.6000, 'name': 'City Hall'}),
-                (4, {'y': 4.8470, 'x': 31.5800, 'name': 'Hospital'}),
-                (5, {'y': 4.8600, 'x': 31.5700, 'name': 'North Area'}),
-                (6, {'y': 4.8450, 'x': 31.5950, 'name': 'South Area'}),
-            ]
+            # 더미 데이터 위험 정보 범위: lat 4.848~4.865, lng 31.565~31.59
+
+            # 노드 추가: 위험 지역을 포함하도록 더 많은 노드 생성
+            nodes = []
+            node_id = 1
+
+            # 그리드 형태로 노드 생성 (10x10 = 100 nodes)
+            lat_start, lat_end = 4.845, 4.870
+            lng_start, lng_end = 31.560, 31.595
+            lat_step = (lat_end - lat_start) / 9  # 10개 구간
+            lng_step = (lng_end - lng_start) / 9
+
+            node_positions = {}  # {node_id: (lat, lng)}
+
+            for i in range(10):
+                for j in range(10):
+                    lat = lat_start + i * lat_step
+                    lng = lng_start + j * lng_step
+                    nodes.append((node_id, {'y': lat, 'x': lng, 'name': f'Node_{node_id}'}))
+                    node_positions[node_id] = (lat, lng)
+                    node_id += 1
+
             G.add_nodes_from(nodes)
-            
-            # 엣지 추가 (도로)
-            edges = [
-                # 공항 → 시청 경로들
-                (1, 2, {'length': 1.5, 'name': 'Airport Road'}),
-                (2, 3, {'length': 0.8, 'name': 'City Hall Road'}),
-                
-                # 공항 → 병원
-                (1, 4, {'length': 2.0, 'name': 'Hospital Road'}),
-                
-                # 우회 경로
-                (1, 5, {'length': 0.8, 'name': 'North Road'}),
-                (5, 4, {'length': 1.0, 'name': 'North Connection'}),
-                (4, 6, {'length': 1.2, 'name': 'South Connection'}),
-                (6, 3, {'length': 0.5, 'name': 'City Hall Entry'}),
-                
-                # 역방향
-                (3, 2, {'length': 0.8, 'name': 'City Hall Road'}),
-                (2, 1, {'length': 1.5, 'name': 'Airport Road'}),
-                (4, 1, {'length': 2.0, 'name': 'Hospital Road'}),
-                (5, 1, {'length': 0.8, 'name': 'North Road'}),
-                (4, 5, {'length': 1.0, 'name': 'North Connection'}),
-                (6, 4, {'length': 1.2, 'name': 'South Connection'}),
-                (3, 6, {'length': 0.5, 'name': 'City Hall Entry'}),
-            ]
+
+            # 엣지 추가: 그리드 형태의 도로 네트워크 (가로/세로 연결)
+            edges = []
+            for i in range(10):
+                for j in range(10):
+                    current_id = i * 10 + j + 1
+
+                    # 오른쪽 노드와 연결
+                    if j < 9:
+                        right_id = current_id + 1
+                        distance = self._calculate_haversine_km(
+                            node_positions[current_id][0], node_positions[current_id][1],
+                            node_positions[right_id][0], node_positions[right_id][1]
+                        )
+                        edges.append((current_id, right_id, {'length': distance, 'name': f'Road_{current_id}_{right_id}'}))
+                        edges.append((right_id, current_id, {'length': distance, 'name': f'Road_{right_id}_{current_id}'}))
+
+                    # 아래 노드와 연결
+                    if i < 9:
+                        bottom_id = current_id + 10
+                        distance = self._calculate_haversine_km(
+                            node_positions[current_id][0], node_positions[current_id][1],
+                            node_positions[bottom_id][0], node_positions[bottom_id][1]
+                        )
+                        edges.append((current_id, bottom_id, {'length': distance, 'name': f'Road_{current_id}_{bottom_id}'}))
+                        edges.append((bottom_id, current_id, {'length': distance, 'name': f'Road_{bottom_id}_{current_id}'}))
+
             G.add_edges_from(edges)
-            
+
+            logger.info(f"더미 그래프 생성 완료: {len(G.nodes)}개 노드, {len(G.edges)}개 엣지")
             return G
+
+    def _calculate_haversine_km(self, lat1, lng1, lat2, lng2):
+        """Haversine 거리 계산 (km)"""
+        import math
+        R = 6371  # 지구 반지름 (km)
+        lat1_rad, lng1_rad = math.radians(lat1), math.radians(lng1)
+        lat2_rad, lng2_rad = math.radians(lat2), math.radians(lng2)
+        dlat = lat2_rad - lat1_rad
+        dlng = lng2_rad - lng1_rad
+        a = math.sin(dlat/2)**2 + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(dlng/2)**2
+        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+        return R * c
     
     def get_graph(self) -> nx.DiGraph:
         """메모리의 그래프 반환 (초기화되지 않은 경우 더미 그래프 반환)"""

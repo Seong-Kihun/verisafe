@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Typography, Spacing } from '../../styles';
 import { useOnboarding } from '../../contexts/OnboardingContext';
 import Icon from '../../components/icons/Icon';
@@ -34,17 +35,14 @@ export default function CompleteScreen({ navigation }) {
   };
 
   return (
-    <View style={styles.container}>
-      {/* 메인 콘텐츠 */}
-      <View style={styles.content}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+      <View style={styles.container}>
+        {/* 메인 콘텐츠 */}
+        <View style={styles.content}>
         {/* 성공 아이콘 */}
         <View style={styles.iconContainer}>
           <View style={styles.successCircle}>
             <Icon name="check" size={80} color={Colors.success} />
-          </View>
-          <View style={styles.celebrationContainer}>
-            <Text style={styles.celebrationEmoji}>🎉</Text>
-            <Text style={styles.celebrationEmoji}>🎊</Text>
           </View>
         </View>
 
@@ -79,7 +77,7 @@ export default function CompleteScreen({ navigation }) {
 
         {/* 안내 문구 */}
         <View style={styles.tipsContainer}>
-          <Text style={styles.tipsTitle}>💡 시작 팁</Text>
+          <Text style={styles.tipsTitle}>시작 팁</Text>
           <Text style={styles.tipItem}>
             • 지도 탭에서 주변 위험 정보를 확인하세요
           </Text>
@@ -90,10 +88,10 @@ export default function CompleteScreen({ navigation }) {
             • 위험 상황을 발견하면 즉시 제보해주세요
           </Text>
           <Text style={styles.tipItem}>
-            • 긴급 상황 시 SOS 버튼을 길게 눌러주세요
+            • 긴급 상황 시 제스처로 SOS를 발송하세요
           </Text>
         </View>
-      </View>
+        </View>
 
       {/* 시작 버튼 */}
       <View style={styles.footer}>
@@ -113,7 +111,8 @@ export default function CompleteScreen({ navigation }) {
           )}
         </TouchableOpacity>
       </View>
-    </View>
+      </View>
+    </SafeAreaView>
   );
 }
 
@@ -144,14 +143,17 @@ const getLanguageName = (code) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
     backgroundColor: Colors.background,
+  },
+  container: {
+    flex: 1,
   },
   content: {
     flex: 1,
     paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing.xxxl,
+    paddingTop: Spacing.xxxl + Spacing.xl,
     alignItems: 'center',
   },
   iconContainer: {
@@ -167,18 +169,6 @@ const styles = StyleSheet.create({
     borderColor: Colors.success,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  celebrationContainer: {
-    position: 'absolute',
-    top: -20,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.md,
-  },
-  celebrationEmoji: {
-    fontSize: 32,
   },
   title: {
     ...Typography.display,

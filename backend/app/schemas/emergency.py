@@ -1,7 +1,9 @@
 """긴급 상황 스키마"""
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import Optional
 from datetime import datetime
+
+from app.utils.validators import validate_latitude, validate_longitude
 
 
 class SOSEventCreate(BaseModel):
@@ -10,6 +12,18 @@ class SOSEventCreate(BaseModel):
     latitude: float
     longitude: float
     message: Optional[str] = "Emergency SOS activated"
+
+    @field_validator('latitude')
+    @classmethod
+    def check_latitude(cls, v):
+        """위도 검증 (-90 ~ 90)"""
+        return validate_latitude(v)
+
+    @field_validator('longitude')
+    @classmethod
+    def check_longitude(cls, v):
+        """경도 검증 (-180 ~ 180)"""
+        return validate_longitude(v)
 
 
 class SOSEventResponse(BaseModel):

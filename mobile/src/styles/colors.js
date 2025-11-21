@@ -101,15 +101,31 @@ export const getHazardColor = (hazardType) => {
 /**
  * 안전도 등급 계산 (A~F) - Phase 2 추가
  * @param {number} riskScore - 위험도 점수 (0-10)
+ * @param {number} hazardCount - 경로 근방 위험 정보 개수 (선택)
  * @returns {string} A, B, C, D, E, F
  */
-export const getSafetyGrade = (riskScore) => {
-  if (riskScore <= 2) return 'A';
-  if (riskScore <= 4) return 'B';
-  if (riskScore <= 6) return 'C';
-  if (riskScore <= 8) return 'D';
-  if (riskScore <= 9) return 'E';
-  return 'F';
+export const getSafetyGrade = (riskScore, hazardCount = 0) => {
+  // 1. 기본 등급 계산 (riskScore 기반)
+  let baseGrade = 0; // 0=A, 1=B, 2=C, 3=D, 4=E, 5=F
+  if (riskScore <= 2) baseGrade = 0; // A
+  else if (riskScore <= 4) baseGrade = 1; // B
+  else if (riskScore <= 6) baseGrade = 2; // C
+  else if (riskScore <= 8) baseGrade = 3; // D
+  else if (riskScore <= 9) baseGrade = 4; // E
+  else baseGrade = 5; // F
+
+  // 2. 위험 개수에 따른 패널티 (등급 하락)
+  let hazardPenalty = 0;
+  if (hazardCount >= 20) hazardPenalty = 3;       // 20개 이상: 3단계 하락
+  else if (hazardCount >= 15) hazardPenalty = 2;  // 15-19개: 2단계 하락
+  else if (hazardCount >= 10) hazardPenalty = 2;  // 10-14개: 2단계 하락
+  else if (hazardCount >= 5) hazardPenalty = 1;   // 5-9개: 1단계 하락
+  // 5개 미만: 패널티 없음
+
+  // 3. 최종 등급 계산 (F를 넘지 않도록 제한)
+  const finalGrade = Math.min(5, baseGrade + hazardPenalty);
+  const grades = ['A', 'B', 'C', 'D', 'E', 'F'];
+  return grades[finalGrade];
 };
 
 /**

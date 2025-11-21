@@ -18,9 +18,10 @@ import {
   Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, CommonActions } from '@react-navigation/native';
 import { Colors, Spacing, Typography, getRiskColor } from '../styles';
 import { useMapContext } from '../contexts/MapContext';
+import { useRoutePlanningContext } from '../contexts/RoutePlanningContext';
 import { savedPlacesStorage } from '../services/storage';
 import Icon from './icons/Icon';
 
@@ -37,6 +38,7 @@ export default function PlaceDetailSheet() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { selectedPlace, closePlaceSheet, isPlaceSheetOpen } = useMapContext();
+  const { setStart, setEnd } = useRoutePlanningContext();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(100)).current;
   const [isSaved, setIsSaved] = useState(false);
@@ -96,6 +98,50 @@ export default function PlaceDetailSheet() {
     console.log('[PlaceDetailSheet] 조건부 리턴:', { selectedPlace: !!selectedPlace, isPlaceSheetOpen });
     return null;
   }
+
+  const handleSetAsStart = () => {
+    setStart({
+      lat: selectedPlace.latitude,
+      lng: selectedPlace.longitude,
+      name: selectedPlace.name,
+      address: selectedPlace.address || selectedPlace.description,
+    });
+    closePlaceSheet();
+    Alert.alert('완료', '출발지로 설정되었습니다.', [
+      {
+        text: '확인',
+        onPress: () => {
+          navigation.dispatch(
+            CommonActions.navigate({
+              name: 'RoutePlanning',
+            })
+          );
+        },
+      },
+    ]);
+  };
+
+  const handleSetAsEnd = () => {
+    setEnd({
+      lat: selectedPlace.latitude,
+      lng: selectedPlace.longitude,
+      name: selectedPlace.name,
+      address: selectedPlace.address || selectedPlace.description,
+    });
+    closePlaceSheet();
+    Alert.alert('완료', '목적지로 설정되었습니다.', [
+      {
+        text: '확인',
+        onPress: () => {
+          navigation.dispatch(
+            CommonActions.navigate({
+              name: 'RoutePlanning',
+            })
+          );
+        },
+      },
+    ]);
+  };
 
   const handleRoute = () => {
     // RoutePlanningScreen으로 이동 (목적지 자동 입력)
@@ -177,9 +223,9 @@ export default function PlaceDetailSheet() {
   return (
     <Animated.View 
       style={[
-        styles.container, 
-        { 
-          paddingBottom: insets.bottom,
+        styles.container,
+        {
+          paddingBottom: Spacing.md, // Safe Area 대신 고정 여백 사용
           opacity: fadeAnim,
           transform: [{ translateY: slideAnim }],
         }
@@ -222,59 +268,99 @@ export default function PlaceDetailSheet() {
           </TouchableOpacity>
         </View>
 
-        {/* 버튼들 - 가로 1줄 */}
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity 
-            style={styles.primaryButton} 
-            onPress={handleRoute}
-            activeOpacity={0.8}
-          >
-            <View style={styles.buttonContent}>
-              <Icon name="route" size={18} color={Colors.textInverse} />
-              <Text style={styles.primaryButtonText}>경로</Text>
-            </View>
-          </TouchableOpacity>
-          
-          <TouchableOpacity
-            style={[styles.secondaryButton, isSaved && styles.savedButton]}
-            onPress={handleSave}
-            activeOpacity={0.8}
-            disabled={isSaving}
-          >
-            <View style={styles.buttonContent}>
-              <Icon
-                name={isSaved ? "save" : "save"}
-                size={18}
-                color={isSaved ? Colors.success : Colors.textPrimary}
-              />
-              <Text style={[styles.secondaryButtonText, isSaved && styles.savedButtonText]}>
-                {isSaving ? '저장 중...' : isSaved ? '저장됨' : '저장'}
+        {/* 버튼들 */}
+        {selectedPlace.selectLocationMode ? (
+          // 위치 선택 모드: 출발지/목적지 설정 버튼
+          <View style={styles.locationSelectButtons}>
+            <TouchableOpacity
+              style={[
+                styles.locationSelectButton,
+                selectedPlace.selectLocationMode === 'start' && styles.locationSelectButtonHighlight
+              ]}
+              onPress={handleSetAsStart}
+              activeOpacity={0.8}
+            >
+              <Icon name="location" size={24} color={selectedPlace.selectLocationMode === 'start' ? Colors.textInverse : Colors.primary} />
+              <Text style={[
+                styles.locationSelectButtonText,
+                selectedPlace.selectLocationMode === 'start' && styles.locationSelectButtonTextHighlight
+              ]}>
+                출발지로 설정
               </Text>
-            </View>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.secondaryButton} 
-            onPress={handleReport}
-            activeOpacity={0.8}
-          >
-            <View style={styles.buttonContent}>
-              <Icon name="report" size={18} color={Colors.textPrimary} />
-              <Text style={styles.secondaryButtonText}>제보</Text>
-            </View>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.secondaryButton} 
-            onPress={handleShare}
-            activeOpacity={0.8}
-          >
-            <View style={styles.buttonContent}>
-              <Icon name="share" size={18} color={Colors.textPrimary} />
-              <Text style={styles.secondaryButtonText}>공유</Text>
-            </View>
-          </TouchableOpacity>
-        </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.locationSelectButton,
+                selectedPlace.selectLocationMode === 'end' && styles.locationSelectButtonHighlight
+              ]}
+              onPress={handleSetAsEnd}
+              activeOpacity={0.8}
+            >
+              <Icon name="navigation" size={24} color={selectedPlace.selectLocationMode === 'end' ? Colors.textInverse : Colors.primary} />
+              <Text style={[
+                styles.locationSelectButtonText,
+                selectedPlace.selectLocationMode === 'end' && styles.locationSelectButtonTextHighlight
+              ]}>
+                목적지로 설정
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          // 일반 모드: 기존 버튼들
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
+              style={styles.primaryButton}
+              onPress={handleRoute}
+              activeOpacity={0.8}
+            >
+              <View style={styles.buttonContent}>
+                <Icon name="route" size={18} color={Colors.textInverse} />
+                <Text style={styles.primaryButtonText}>경로</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.secondaryButton, isSaved && styles.savedButton]}
+              onPress={handleSave}
+              activeOpacity={0.8}
+              disabled={isSaving}
+            >
+              <View style={styles.buttonContent}>
+                <Icon
+                  name={isSaved ? "save" : "save"}
+                  size={18}
+                  color={isSaved ? Colors.success : Colors.textPrimary}
+                />
+                <Text style={[styles.secondaryButtonText, isSaved && styles.savedButtonText]}>
+                  {isSaving ? '저장 중...' : isSaved ? '저장됨' : '저장'}
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              onPress={handleReport}
+              activeOpacity={0.8}
+            >
+              <View style={styles.buttonContent}>
+                <Icon name="report" size={18} color={Colors.textPrimary} />
+                <Text style={styles.secondaryButtonText}>제보</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              onPress={handleShare}
+              activeOpacity={0.8}
+            >
+              <View style={styles.buttonContent}>
+                <Icon name="share" size={18} color={Colors.textPrimary} />
+                <Text style={styles.secondaryButtonText}>공유</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        )}
       </ScrollView>
     </Animated.View>
   );
@@ -283,7 +369,7 @@ export default function PlaceDetailSheet() {
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: 0,
+    bottom: 70, // 탭바 높이만큼 위로
     left: 0,
     right: 0,
     backgroundColor: Colors.surfaceElevated,
@@ -414,6 +500,35 @@ const styles = StyleSheet.create({
   savedButtonText: {
     color: Colors.success,
     fontWeight: '600',
+  },
+  locationSelectButtons: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    gap: Spacing.md,
+  },
+  locationSelectButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.surface,
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: 12,
+    gap: Spacing.sm,
+    borderWidth: 2,
+    borderColor: Colors.border,
+  },
+  locationSelectButtonHighlight: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  locationSelectButtonText: {
+    ...Typography.button,
+    color: Colors.primary,
+    fontSize: 16,
+  },
+  locationSelectButtonTextHighlight: {
+    color: Colors.textInverse,
   },
 });
 

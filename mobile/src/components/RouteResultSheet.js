@@ -10,7 +10,7 @@
  * 6. 위험 구간 수 표시
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -25,7 +25,9 @@ import { useNavigation } from '@react-navigation/native';
 import { Colors, Spacing, Typography } from '../styles';
 import { useMapContext } from '../contexts/MapContext';
 import { useNavigation as useNavContext } from '../contexts/NavigationContext';
+import { routeAPI } from '../services/api';
 import Icon from './icons/Icon';
+import { useRouteHazardCount } from '../hooks/useRouteHazards';
 
 export default function RouteResultSheet() {
   const insets = useSafeAreaInsets();
@@ -33,6 +35,28 @@ export default function RouteResultSheet() {
   const { startNavigation } = useNavContext();
   const navigation = useNavigation();
   const [selectedMode, setSelectedMode] = useState('safe');
+  const [routeHazards, setRouteHazards] = useState({});
+
+  // 경로 위험 정보 가져오기
+  useEffect(() => {
+    const fetchRouteHazards = async () => {
+      if (!routeResponse || !routeResponse.routes) return;
+
+      const hazardsData = {};
+      for (const route of routeResponse.routes) {
+        try {
+          const response = await routeAPI.getRouteHazards(route.id, route.polyline);
+          hazardsData[route.id] = response.data.hazards || [];
+        } catch (error) {
+          console.error(`[RouteResultSheet] Failed to fetch hazards for ${route.id}:`, error);
+          hazardsData[route.id] = [];
+        }
+      }
+      setRouteHazards(hazardsData);
+    };
+
+    fetchRouteHazards();
+  }, [routeResponse]);
 
   if (!routeResponse || !routeResponse.routes || routeResponse.routes.length === 0) {
     return null;
@@ -79,19 +103,56 @@ export default function RouteResultSheet() {
     return `${period} ${displayHours}:${minutes.toString().padStart(2, '0')}`;
   };
 
-  // 위험 구간 수 계산
+  // 위험 구간 수 계산 (실제 API 데이터 사용)
+  // Note: 이 로직은 useRouteHazardCount hook과 동일하지만,
+  // routeHazards 상태를 사용하기 때문에 함수로 유지
   const getHazardZoneCount = (route) => {
-    // 향후 개선: route.hazards 배열에서 실제 위험 구간 수를 계산
-    // 현재는 risk_score를 기반으로 추정값 반환
-    return route.hazards?.length || Math.floor(route.risk_score / 20);
+    const hazards = routeHazards[route.id];
+    // useRouteHazardCount와 동일한 로직 사용
+    if (hazards && Array.isArray(hazards) && hazards.length > 0) {
+      return hazards.length;
+    }
+    return route?.hazard_count || 0;
+  };
+
+  // 실제 위험도 계산 (hazards 기반)
+  const getActualRiskScore = (route) => {
+    const hazards = routeHazards[route.id];
+    if (!hazards || hazards.length === 0) {
+      return route.risk_score || 0;
+    }
+
+    // 위험 수준에 따른 가중치
+    const severityWeights = {
+      'critical': 3,
+      'high': 2,
+      'medium': 1,
+      'low': 0.5
+    };
+
+    let totalWeight = 0;
+    hazards.forEach(hazard => {
+      const weight = severityWeights[hazard.severity] || 1;
+      totalWeight += weight;
+    });
+
+    // 0-10 스케일로 정규화 (hazards 수와 심각도를 고려)
+    const normalized = Math.min(10, Math.round(totalWeight / 2));
+    return normalized;
   };
 
   const handleStartNavigation = async () => {
     const currentRoute = selectedMode === 'safe' ? safeRoute : fastRoute;
     if (currentRoute) {
       try {
+        // 경로에 위험 정보 추가
+        const routeWithHazards = {
+          ...currentRoute,
+          hazards: routeHazards[currentRoute.id] || []
+        };
+
         // 네비게이션 시작 (위치 추적, 음성 안내 등 초기화)
-        await startNavigation(currentRoute);
+        await startNavigation(routeWithHazards);
 
         // 네비게이션 화면으로 이동
         navigation.navigate('NavigationScreen');
@@ -114,9 +175,10 @@ export default function RouteResultSheet() {
     const currentRoute = selectedMode === 'safe' ? safeRoute : fastRoute;
     if (!currentRoute) return;
 
-    const safetyGrade = getSafetyGrade(currentRoute.risk_score);
-    const eta = getETA(currentRoute.duration);
+    const actualRiskScore = getActualRiskScore(currentRoute);
     const hazardCount = getHazardZoneCount(currentRoute);
+    const safetyGrade = getSafetyGrade(actualRiskScore, hazardCount);
+    const eta = getETA(currentRoute.duration);
 
     const shareText = `🗺️ VeriSafe 안전 경로
 
@@ -146,13 +208,15 @@ VeriSafe로 안전하게 이동하세요!`;
     return null;
   }
 
-  const safetyGrade = getSafetyGrade(currentRoute.risk_score);
+  // 실제 위험도 사용
+  const actualRiskScore = getActualRiskScore(currentRoute);
+  const hazardCount = getHazardZoneCount(currentRoute);
+  const safetyGrade = getSafetyGrade(actualRiskScore, hazardCount);
   const gradeColor = getGradeColor(safetyGrade);
   const eta = getETA(currentRoute.duration);
-  const hazardCount = getHazardZoneCount(currentRoute);
 
   return (
-    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
+    <View style={[styles.container, { paddingBottom: Spacing.md }]}>
       <View style={styles.sheetHandle} />
 
       {/* 모드 탭 또는 단일 경로 안내 */}
@@ -263,7 +327,7 @@ VeriSafe로 안전하게 이동하세요!`;
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: 0,
+    bottom: 70, // 탭바 높이만큼 위로
     left: 0,
     right: 0,
     backgroundColor: Colors.surface,

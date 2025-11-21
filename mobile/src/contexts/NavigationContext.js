@@ -2,11 +2,13 @@
  * NavigationContext - 네비게이션 전역 상태 관리
  */
 
-import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
 import { Alert } from 'react-native';
+import * as Location from 'expo-location';
 import navigationService from '../services/navigationService';
 import voiceGuidance from '../services/voiceGuidance';
 import { routeAPI } from '../services/api';
+import { calculateDistance } from '../utils/navigationUtils';
 
 const NavigationContext = createContext();
 
@@ -16,6 +18,8 @@ export const NavigationProvider = ({ children }) => {
   const [route, setRoute] = useState(null);
   const [isVoiceEnabled, setIsVoiceEnabled] = useState(true);
   const lastVoiceInstructionRef = useRef(null);
+  const lastOffRouteAlertRef = useRef(null); // 경로 이탈 알림 중복 방지
+  const isMountedRef = useRef(true); // 컴포넌트 마운트 상태 추적
 
   /**
    * 네비게이션 시작
@@ -25,25 +29,62 @@ export const NavigationProvider = ({ children }) => {
     try {
       console.log('[NavigationContext] Starting navigation...');
 
-      setRoute(routeData);
+      // 경로 데이터 변환: polyline을 coordinates 형식으로 변환
+      const processedRoute = {
+        ...routeData,
+        coordinates: routeData.polyline
+          ? routeData.polyline.map(([lat, lng]) => ({ latitude: lat, longitude: lng }))
+          : routeData.waypoints?.map(([lat, lng]) => ({ latitude: lat, longitude: lng })) || [],
+        total_distance: routeData.distance_meters || routeData.distance * 1000,
+        total_duration: routeData.duration_seconds || routeData.duration * 60,
+      };
 
-      // 음성 안내 시작 알림
-      if (isVoiceEnabled && routeData.total_distance && routeData.total_duration) {
-        await voiceGuidance.speakNavigationStart(
-          routeData.total_distance,
-          routeData.total_duration
-        );
+      // 경로 유효성 검증
+      if (!processedRoute.coordinates || processedRoute.coordinates.length === 0) {
+        throw new Error('유효하지 않은 경로 데이터입니다.');
       }
 
-      // 네비게이션 서비스 시작
-      await navigationService.startNavigation(
-        routeData,
-        handleNavigationUpdate, // 상태 업데이트 콜백
-        handleNavigationComplete, // 완료 콜백
-        handleOffRoute // 경로 이탈 콜백
+      // 현재 위치 가져오기
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.BestForNavigation,
+      });
+      const currentLocation = {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      };
+
+      // 경로 시작점과 현재 위치의 거리 확인
+      const routeStart = processedRoute.coordinates[0];
+      const distanceToStart = calculateDistance(
+        currentLocation.latitude,
+        currentLocation.longitude,
+        routeStart.latitude,
+        routeStart.longitude
       );
 
-      setIsNavigating(true);
+      console.log(`[NavigationContext] 현재 위치: (${currentLocation.latitude}, ${currentLocation.longitude})`);
+      console.log(`[NavigationContext] 경로 시작점: (${routeStart.latitude}, ${routeStart.longitude})`);
+      console.log(`[NavigationContext] 거리: ${Math.round(distanceToStart)}m`);
+
+      // 경로 시작점에서 5km 이상 떨어져 있으면 경고
+      if (distanceToStart > 5000) {
+        Alert.alert(
+          '경고',
+          `현재 위치가 경로 시작점에서 ${(distanceToStart / 1000).toFixed(1)}km 떨어져 있습니다.\n그래도 네비게이션을 시작하시겠습니까?`,
+          [
+            { text: '취소', style: 'cancel' },
+            {
+              text: '시작',
+              onPress: async () => {
+                await continueNavigation(processedRoute);
+              }
+            }
+          ]
+        );
+        return;
+      }
+
+      await continueNavigation(processedRoute);
     } catch (error) {
       console.error('[NavigationContext] Failed to start navigation:', error);
       Alert.alert('오류', '네비게이션을 시작할 수 없습니다.\n위치 권한을 확인해주세요.');
@@ -51,10 +92,43 @@ export const NavigationProvider = ({ children }) => {
   }, [isVoiceEnabled]);
 
   /**
+   * 네비게이션 계속 진행 (검증 후)
+   */
+  const continueNavigation = async (processedRoute) => {
+    try {
+      setRoute(processedRoute);
+
+      // 음성 안내 시작 알림
+      if (isVoiceEnabled && processedRoute.total_distance && processedRoute.total_duration) {
+        await voiceGuidance.speakNavigationStart(
+          processedRoute.total_distance,
+          processedRoute.total_duration
+        );
+      }
+
+      // 네비게이션 서비스 시작
+      await navigationService.startNavigation(
+        processedRoute,
+        handleNavigationUpdate, // 상태 업데이트 콜백
+        handleNavigationComplete, // 완료 콜백
+        handleOffRoute // 경로 이탈 콜백
+      );
+
+      setIsNavigating(true);
+    } catch (error) {
+      console.error('[NavigationContext] Failed to continue navigation:', error);
+      throw error;
+    }
+  };
+
+  /**
    * 네비게이션 상태 업데이트 핸들러
    * @param {Object} state - 네비게이션 상태
    */
   const handleNavigationUpdate = useCallback((state) => {
+    // 컴포넌트가 unmount되었으면 상태 업데이트 스킵
+    if (!isMountedRef.current) return;
+
     setNavigationState(state);
 
     // 음성 안내 (중복 방지)
@@ -109,6 +183,14 @@ export const NavigationProvider = ({ children }) => {
   const handleOffRoute = useCallback(async (offRouteInfo) => {
     console.log('[NavigationContext] Off route:', offRouteInfo);
 
+    // 경로 이탈 알림 중복 방지 (30초 이내 재알림 방지)
+    const now = Date.now();
+    if (lastOffRouteAlertRef.current && (now - lastOffRouteAlertRef.current) < 30000) {
+      console.log('[NavigationContext] Off route alert suppressed (too soon)');
+      return;
+    }
+    lastOffRouteAlertRef.current = now;
+
     if (isVoiceEnabled) {
       await voiceGuidance.speakOffRoute();
     }
@@ -143,17 +225,21 @@ export const NavigationProvider = ({ children }) => {
       const destination = route.coordinates[route.coordinates.length - 1];
 
       // 경로 재탐색
-      const newRoute = await routeAPI.searchRoute({
-        start: currentLocation,
-        end: destination,
-        hazardTypes: [] // 기존 설정 사용 가능
+      const newRouteResponse = await routeAPI.calculateRoute({
+        start: { lat: currentLocation.latitude, lng: currentLocation.longitude },
+        end: { lat: destination.latitude, lng: destination.longitude },
+        preference: 'safe',
+        transportation_mode: route.transportation_mode || 'car',
+        excluded_hazard_types: []
       });
 
       // 기존 네비게이션 중지
       await navigationService.stopNavigation();
 
-      // 새 경로로 재시작
-      await startNavigation(newRoute);
+      // 새 경로로 재시작 (첫 번째 경로 사용)
+      if (newRouteResponse.routes && newRouteResponse.routes.length > 0) {
+        await startNavigation(newRouteResponse.routes[0]);
+      }
     } catch (error) {
       console.error('[NavigationContext] Reroute failed:', error);
       Alert.alert('오류', '경로 재탐색에 실패했습니다.');
@@ -173,6 +259,7 @@ export const NavigationProvider = ({ children }) => {
     setNavigationState(null);
     setRoute(null);
     lastVoiceInstructionRef.current = null;
+    lastOffRouteAlertRef.current = null;
   }, []);
 
   /**
@@ -183,6 +270,26 @@ export const NavigationProvider = ({ children }) => {
     setIsVoiceEnabled(newEnabled);
     voiceGuidance.setEnabled(newEnabled);
   }, [isVoiceEnabled]);
+
+  // 컴포넌트 언마운트 시 cleanup
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    return () => {
+      console.log('[NavigationContext] Cleanup on unmount');
+      isMountedRef.current = false;
+
+      // 네비게이션이 실행 중이면 중지
+      if (isNavigating) {
+        navigationService.stopNavigation().catch(err => {
+          console.error('[NavigationContext] Cleanup failed:', err);
+        });
+        voiceGuidance.stop().catch(err => {
+          console.error('[NavigationContext] Voice cleanup failed:', err);
+        });
+      }
+    };
+  }, [isNavigating]);
 
   const value = {
     // 상태

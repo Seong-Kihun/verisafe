@@ -12,19 +12,23 @@ import {
   Alert,
   ActivityIndicator,
   Linking,
+  Switch,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Colors, Typography, Spacing } from '../styles';
 import { emergencyContactsStorage } from '../services/storage';
 import Icon from '../components/icons/Icon';
+import { GestureSettings } from '../services/emergencyGesture';
 
 export default function EmergencyContactsScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [contacts, setContacts] = useState([]);
+  const [gestureSettings, setGestureSettings] = useState(null);
 
   useFocusEffect(
     useCallback(() => {
       loadContacts();
+      loadGestureSettings();
     }, [])
   );
 
@@ -40,6 +44,27 @@ export default function EmergencyContactsScreen({ navigation }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadGestureSettings = async () => {
+    try {
+      const data = await GestureSettings.load();
+      setGestureSettings(data);
+    } catch (error) {
+      console.error('[EmergencyContacts] Failed to load gesture settings:', error);
+    }
+  };
+
+  const handleToggleTapGesture = async (value) => {
+    const newSettings = { ...gestureSettings, tapGestureEnabled: value };
+    setGestureSettings(newSettings);
+    await GestureSettings.save(newSettings);
+  };
+
+  const handleToggleVolumeGesture = async (value) => {
+    const newSettings = { ...gestureSettings, volumeGestureEnabled: value };
+    setGestureSettings(newSettings);
+    await GestureSettings.save(newSettings);
   };
 
   const handleEdit = (contact) => {
@@ -223,12 +248,83 @@ export default function EmergencyContactsScreen({ navigation }) {
           />
 
           <View style={styles.infoBox}>
-            <Icon name="info" size={20} color={Colors.warning} />
+            <Icon name="info" size={20} color={Colors.info} />
             <Text style={styles.infoText}>
-              SOS 버튼을 누르거나 안전 체크인을 놓치면{'\n'}
-              등록된 연락처로 자동 알림이 전송됩니다
+              안전 체크인을 놓치면 등록된 연락처로 자동 알림이 전송됩니다.{'\n'}
+              아래에서 긴급 제스처 기능을 켜면 빠르게 SOS를 요청할 수 있습니다.
             </Text>
           </View>
+
+          {/* 긴급 제스처 설정 */}
+          {gestureSettings && (
+            <View style={styles.gestureSection}>
+              <View style={styles.gestureSectionHeader}>
+                <Icon name="touch" size={24} color={Colors.primary} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.gestureSectionTitle}>🆘 긴급 제스처 설정</Text>
+                  <Text style={styles.gestureSectionSubtitle}>
+                    특정 제스처로 빠르게 SOS 메시지 발송 (기본적으로 꺼져있음)
+                  </Text>
+                </View>
+              </View>
+
+              {!gestureSettings.tapGestureEnabled && !gestureSettings.volumeGestureEnabled && (
+                <View style={styles.enableHintBox}>
+                  <Icon name="info" size={16} color={Colors.primary} />
+                  <Text style={styles.enableHintText}>
+                    아래 스위치를 켜서 긴급 제스처 기능을 활성화하세요
+                  </Text>
+                </View>
+              )}
+
+              <View style={styles.gestureCard}>
+                <View style={styles.gestureItemHeader}>
+                  <View style={styles.gestureItemLeft}>
+                    <Icon name="touch" size={20} color={Colors.textPrimary} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.gestureItemTitle}>
+                        화면 모서리 {gestureSettings.tapCount}번 탭
+                      </Text>
+                      <Text style={styles.gestureItemDescription}>
+                        {gestureSettings.tapTimeout/1000}초 안에 화면 모서리를 {gestureSettings.tapCount}번 탭하면 SOS 발송
+                      </Text>
+                    </View>
+                  </View>
+                  <Switch
+                    value={gestureSettings.tapGestureEnabled}
+                    onValueChange={handleToggleTapGesture}
+                    trackColor={{ false: Colors.border, true: Colors.primary + '60' }}
+                    thumbColor={gestureSettings.tapGestureEnabled ? Colors.primary : Colors.textTertiary}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.gestureCard}>
+                <View style={styles.gestureItemHeader}>
+                  <View style={styles.gestureItemLeft}>
+                    <Icon name="volume" size={20} color={Colors.textPrimary} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.gestureItemTitle}>
+                        볼륨 버튼 {gestureSettings.volumePressCount}번 누르기
+                      </Text>
+                      <Text style={styles.gestureItemDescription}>
+                        {gestureSettings.volumeTimeout/1000}초 안에 볼륨 버튼을 {gestureSettings.volumePressCount}번 누르면 SOS 발송{'\n'}
+                        <Text style={{ color: Colors.textTertiary, fontSize: 11 }}>
+                          (커스텀 빌드 필요)
+                        </Text>
+                      </Text>
+                    </View>
+                  </View>
+                  <Switch
+                    value={gestureSettings.volumeGestureEnabled}
+                    onValueChange={handleToggleVolumeGesture}
+                    trackColor={{ false: Colors.border, true: Colors.primary + '60' }}
+                    thumbColor={gestureSettings.volumeGestureEnabled ? Colors.primary : Colors.textTertiary}
+                  />
+                </View>
+              </View>
+            </View>
+          )}
         </>
       )}
     </View>
@@ -435,5 +531,79 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     flex: 1,
     lineHeight: 18,
+  },
+  gestureSection: {
+    margin: Spacing.lg,
+    backgroundColor: Colors.surface,
+    borderRadius: 16,
+    padding: Spacing.lg,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  gestureSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    marginBottom: Spacing.lg,
+  },
+  gestureSectionTitle: {
+    ...Typography.h3,
+    color: Colors.textPrimary,
+    marginBottom: 4,
+  },
+  gestureSectionSubtitle: {
+    ...Typography.caption,
+    color: Colors.textSecondary,
+  },
+  enableHintBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    backgroundColor: Colors.primary + '10',
+    padding: Spacing.md,
+    borderRadius: 12,
+    marginBottom: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.primary + '30',
+  },
+  enableHintText: {
+    ...Typography.captionSmall,
+    color: Colors.primary,
+    flex: 1,
+    fontWeight: '600',
+  },
+  gestureCard: {
+    backgroundColor: Colors.background,
+    borderRadius: 12,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  gestureItemHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  gestureItemLeft: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+    marginRight: Spacing.sm,
+  },
+  gestureItemTitle: {
+    ...Typography.body,
+    color: Colors.textPrimary,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  gestureItemDescription: {
+    ...Typography.captionSmall,
+    color: Colors.textSecondary,
+    lineHeight: 16,
   },
 });

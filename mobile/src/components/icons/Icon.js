@@ -45,6 +45,7 @@ export const ICON_MAP = {
   share: 'share',
   report: 'report',
   close: 'close',
+  check: 'check',
   camera: 'camera-alt',
   'add-photo': 'add-a-photo',
   add: 'add',
@@ -59,6 +60,9 @@ export const ICON_MAP = {
   history: 'history',
   directions: 'directions',
   phone: 'phone',
+  emergency: 'emergency',
+  lock: 'lock',
+  swap: 'swap-vert',
 
   // Checkboxes
   'check-box': 'check-box',
@@ -68,10 +72,15 @@ export const ICON_MAP = {
   'chevron-right': 'chevron-right',
   'chevron-left': 'chevron-left',
   'chevron-down': 'keyboard-arrow-down',
+  'chevron-up': 'keyboard-arrow-up',
   'arrow-forward': 'arrow-forward',
+  'arrow-back': 'arrow-back',
+  arrowForward: 'arrow-forward',  // camelCase alias
+  arrowBack: 'arrow-back',        // camelCase alias
   chevronRight: 'chevron-right',  // camelCase alias
   chevronLeft: 'chevron-left',    // camelCase alias
   chevronDown: 'keyboard-arrow-down',  // camelCase alias
+  chevronUp: 'keyboard-arrow-up',  // camelCase alias
 
   // Other
   article: 'article',
@@ -94,6 +103,7 @@ export const ICON_MAP = {
   
   // Route Types
   safe: 'shield',
+  shield: 'shield',
   fast: 'flash-on',
   alternative: 'alt-route',
   

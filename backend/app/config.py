@@ -70,7 +70,7 @@ class Settings(BaseSettings):
                 )
 
     # CORS - 개발 환경에서는 모든 localhost 포트 허용
-    allowed_origins: str = "http://localhost:8081,http://192.168.45.177:8081,http://localhost:19006,http://localhost:19000,http://localhost:8000,http://127.0.0.1:8081,http://127.0.0.1:19006,http://127.0.0.1:19000"
+    allowed_origins: str = "http://localhost:8081,http://172.20.10.3:8081,http://192.168.45.177:8081,http://192.168.0.24:8081,http://localhost:19006,http://localhost:19000,http://localhost:8000,http://127.0.0.1:8081,http://127.0.0.1:19006,http://127.0.0.1:19000,http://localhost:3000,http://127.0.0.1:3000,http://172.20.10.3:3000,http://192.168.45.177:3000,http://192.168.0.24:3000"
 
     # File Storage
     upload_dir: str = "./uploads"

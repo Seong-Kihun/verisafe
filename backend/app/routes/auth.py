@@ -1,5 +1,5 @@
 """인증 라우터"""
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
@@ -11,13 +11,20 @@ from app.services.auth_service import (
     create_access_token,
     get_password_hash
 )
+from app.utils.helpers import db_transaction
+from app.middleware.rate_limiter import limiter
 
 router = APIRouter()
 
 
 @router.post("/register", response_model=UserResponse)
-async def register(user: UserCreate, db: Session = Depends(get_db)):
-    """회원가입"""
+@limiter.limit("3/minute")  # 1분에 3회로 제한 (브루트포스 방지)
+async def register(
+    http_request: Request,
+    user: UserCreate,
+    db: Session = Depends(get_db)
+):
+    """회원가입 (속도 제한 3/분)"""
     # 중복 사용자 확인
     db_user = db.query(User).filter(User.username == user.username).first()
     if db_user:
@@ -25,25 +32,30 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Username already registered"
         )
-    
+
     # 사용자 생성
-    hashed_password = get_password_hash(user.password)
-    db_user = User(
-        username=user.username,
-        email=user.email,
-        password_hash=hashed_password
-    )
-    
-    db.add(db_user)
-    db.commit()
+    with db_transaction(db, "회원가입"):
+        hashed_password = get_password_hash(user.password)
+        db_user = User(
+            username=user.username,
+            email=user.email,
+            password_hash=hashed_password
+        )
+
+        db.add(db_user)
+
     db.refresh(db_user)
-    
     return db_user
 
 
 @router.post("/login", response_model=Token)
-async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    """로그인"""
+@limiter.limit("10/minute")  # 1분에 10회로 제한 (브루트포스 방지)
+async def login(
+    http_request: Request,
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db)
+):
+    """로그인 (속도 제한 10/분)"""
     user = authenticate_user(db, form_data.username, form_data.password)
     if not user:
         raise HTTPException(

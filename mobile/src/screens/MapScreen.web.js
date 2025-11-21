@@ -44,14 +44,16 @@ const JUBA_CENTER = {
 export default function MapScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
-  const { 
-    isPlaceSheetOpen, 
-    isRouteSheetOpen, 
-    selectedPlace, 
+  const {
+    isPlaceSheetOpen,
+    isRouteSheetOpen,
+    selectedPlace,
     routeResponse,
     userLocation,
     updateUserLocation,
-    openPlaceSheet
+    openPlaceSheet,
+    setRouteResponse,
+    clearRouteResponse
   } = useMapContext();
 
   const {
@@ -61,10 +63,9 @@ export default function MapScreen() {
     endLocation,
     isHazardBriefingOpen,
     closeHazardBriefing,
-    selectRoute
+    selectRoute,
+    reset: resetRoutePlanning
   } = useRoutePlanningContext();
-
-  const { setRouteResponse } = useMapContext();
 
   const [loading, setLoading] = useState(true);
   const [landmarks, setLandmarks] = useState([]);
@@ -304,6 +305,12 @@ export default function MapScreen() {
     setIsLayerMenuOpen(prev => !prev);
   };
 
+  // 경로 찾기 모드 종료
+  const handleClearRoute = () => {
+    resetRoutePlanning(); // 출발지, 목적지, 경로 등 모두 초기화
+    clearRouteResponse(); // 지도에 표시된 경로 초기화
+  };
+
   const handleMyLocation = async () => {
     if (!locationPermission || !userLocation) {
       await requestLocationPermission();
@@ -510,10 +517,44 @@ export default function MapScreen() {
           gap: Spacing.sm,
         }}>
           <View style={{ flex: 1 }}>
-            <SearchBar
-              onPress={() => navigation.navigate('Search')}
-              placeholder="어디로 갈까요?"
-            />
+            {startLocation && endLocation ? (
+              // 경로가 있을 때: 출발지/목적지 표시
+              <View style={styles.routeInfoContainer}>
+                <TouchableOpacity
+                  style={styles.routeInfoContent}
+                  onPress={() => navigation.navigate('RoutePlanning')}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.routeInfoRow}>
+                    <Icon name="location" size={16} color={Colors.primary} />
+                    <Text style={styles.routeInfoText} numberOfLines={1}>
+                      {startLocation.name || '출발지'}
+                    </Text>
+                  </View>
+                  <View style={styles.routeInfoDivider} />
+                  <View style={styles.routeInfoRow}>
+                    <Icon name="navigation" size={16} color={Colors.error} />
+                    <Text style={styles.routeInfoText} numberOfLines={1}>
+                      {endLocation.name || '목적지'}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.routeCloseButton}
+                  onPress={handleClearRoute}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Icon name="close" size={20} color={Colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
+            ) : (
+              // 경로가 없을 때: 검색바
+              <SearchBar
+                onPress={() => navigation.navigate('Search')}
+                placeholder="어디로 갈까요?"
+              />
+            )}
           </View>
           <TouchableOpacity
             style={styles.layerButton}
@@ -722,6 +763,42 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     shadowOpacity: 0.3,
     elevation: 5,
+  },
+  // 경로 정보 컨테이너
+  routeInfoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.surface,
+    borderRadius: 12,
+    shadowColor: Colors.shadowDark,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  routeInfoContent: {
+    flex: 1,
+    padding: Spacing.sm,
+  },
+  routeInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  routeInfoText: {
+    ...Typography.body,
+    fontSize: 13,
+    color: Colors.textPrimary,
+    flex: 1,
+  },
+  routeInfoDivider: {
+    height: 1,
+    backgroundColor: Colors.border,
+    marginVertical: Spacing.xs,
+  },
+  routeCloseButton: {
+    padding: Spacing.sm,
+    paddingLeft: Spacing.xs,
   },
   routeToggleText: {
     ...Typography.labelMedium,

@@ -4,6 +4,7 @@
  */
 
 import { reportAPI } from './api';
+import api from './api';
 import {
   getOfflineReports,
   deleteOfflineReport,
@@ -95,8 +96,9 @@ export const syncPendingUploads = async () => {
 
     for (const upload of pendingUploads) {
       try {
-        // TODO: 사진 업로드 로직 구현 필요
-        // await uploadPhoto(upload.photoUri, upload.reportId);
+        if (upload.photoUri) {
+          await uploadPhoto(upload.photoUri, upload.reportId);
+        }
 
         await removePendingUpload(upload.id);
         successCount++;
@@ -128,5 +130,43 @@ export const syncAll = async () => {
   } catch (error) {
     console.error('[Sync] Full sync failed:', error);
     return { success: false, error: error.message };
+  }
+};
+
+/**
+ * 사진 업로드 함수
+ * @param {string} photoUri - 사진 URI (file://)
+ * @param {string} reportId - 제보 ID
+ */
+const uploadPhoto = async (photoUri, reportId) => {
+  try {
+    // FormData 생성
+    const formData = new FormData();
+
+    // 파일 정보 생성
+    const filename = photoUri.split('/').pop();
+    const fileType = filename.split('.').pop();
+    const mimeType = `image/${fileType === 'jpg' ? 'jpeg' : fileType}`;
+
+    formData.append('photo', {
+      uri: photoUri,
+      type: mimeType,
+      name: filename,
+    });
+
+    formData.append('report_id', reportId);
+
+    // 사진 업로드 API 호출
+    const response = await api.post('/api/reports/upload-photo', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    if (__DEV__) console.log('[SyncService] Photo uploaded successfully:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('[SyncService] Photo upload failed:', error);
+    throw error;
   }
 };

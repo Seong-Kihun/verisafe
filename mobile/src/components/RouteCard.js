@@ -10,10 +10,12 @@ import React, { useRef, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { Colors, Spacing, Typography, getRiskColor, getSafetyGrade, getGradeColor } from '../styles';
 import Icon from './icons/Icon';
+import { useRouteHazardCount } from '../hooks/useRouteHazards';
 
 export default function RouteCard({ route, onSelect, isSelected }) {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
+  const hazardCount = useRouteHazardCount(route);
 
   useEffect(() => {
     // Fade in 애니메이션
@@ -65,16 +67,8 @@ export default function RouteCard({ route, onSelect, isSelected }) {
     return colors[type] || Colors.textSecondary;
   };
 
-  // 위험 구간 수 계산
-  const getHazardZoneCount = (route) => {
-    // 향후 개선: route.hazards 배열에서 실제 위험 구간 수를 계산
-    // 현재는 risk_score를 기반으로 추정값 반환
-    return route.hazards?.length || Math.floor(route.risk_score / 20);
-  };
-
-  const safetyGrade = getSafetyGrade(route.risk_score);
+  const safetyGrade = getSafetyGrade(route.risk_score, hazardCount);
   const gradeColor = getGradeColor(safetyGrade);
-  const hazardCount = getHazardZoneCount(route);
 
   return (
     <Animated.View

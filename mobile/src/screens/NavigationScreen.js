@@ -19,12 +19,18 @@ import Icon from '../components/icons/Icon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function NavigationScreen() {
+  console.log('[NavigationScreen] 컴포넌트 렌더링');
+
   const insets = useSafeAreaInsets();
   const mapRef = useRef(null);
   const { navigationState, route, stopNavigation, isVoiceEnabled, toggleVoiceGuidance } = useNav();
 
+  console.log('[NavigationScreen] navigationState:', navigationState);
+  console.log('[NavigationScreen] route:', route);
+
   // 지도를 현재 위치로 자동 이동
   useEffect(() => {
+    console.log('[NavigationScreen] useEffect - currentLocation:', navigationState?.currentLocation);
     if (mapRef.current && navigationState?.currentLocation) {
       mapRef.current.animateCamera({
         center: navigationState.currentLocation,

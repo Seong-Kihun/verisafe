@@ -4,6 +4,9 @@
     "slug": "verisafe",
     "version": "1.0.0",
     "orientation": "portrait",
+    "extra": {
+      "EXPO_PUBLIC_API_URL": "http://172.20.10.3:8000"
+    },
     "updates": {
       "fallbackToCacheTimeout": 0
     },

@@ -30,8 +30,16 @@ const isValidHazardType = (typeId) => {
 };
 
 export function HazardFilterProvider({ children }) {
-  // 제외할 위험 유형 리스트 (빈 배열 = 모든 위험 유형 포함)
-  const [excludedHazardTypes, setExcludedHazardTypes] = useState([]);
+  // 제외할 위험 유형 리스트
+  // 기본적으로 시위(protest), 검문소(checkpoint), 도로손상(road_damage)만 표시
+  const [excludedHazardTypes, setExcludedHazardTypes] = useState([
+    'armed_conflict',
+    'natural_disaster',
+    'flood',
+    'landslide',
+    'safe_haven',
+    'other'
+  ]);
 
   // 위험 유형 토글 (제외 목록에 추가/제거)
   const toggleHazardType = useCallback((typeId) => {

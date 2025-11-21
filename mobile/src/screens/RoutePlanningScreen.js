@@ -29,7 +29,6 @@ import { routeAPI } from '../services/api';
 import LocationInput from '../components/LocationInput';
 import TransportationModeSelector from '../components/TransportationModeSelector';
 import RouteCard from '../components/RouteCard';
-import RouteComparison from '../components/RouteComparison';
 import RouteHazardBriefing from '../components/RouteHazardBriefing';
 import Icon from '../components/icons/Icon';
 import { saveRecentDestination } from '../components/QuickAccessPanel';
@@ -170,6 +169,17 @@ export default function RoutePlanningScreen() {
     }
   }, [startLocation, endLocation, transportationMode, excludedHazardTypes, setRouteResponse, t, setRoutesList, setCalculating]);
 
+  // Debounced 버전의 경로 계산 함수 (필터 변경 시 사용)
+  const timeoutRef = useRef(null);
+  const debouncedCalculateRoutes = useCallback(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    timeoutRef.current = setTimeout(() => {
+      calculateRoutes();
+    }, 500);
+  }, [calculateRoutes]);
+
   // route params에서 목적지 가져오기 (PlaceDetailSheet에서 경로 버튼 클릭 시)
   useEffect(() => {
     if (route.params?.destination) {
@@ -183,15 +193,50 @@ export default function RoutePlanningScreen() {
     }
   }, [route.params]);
 
+  // SearchScreen에서 선택된 장소 처리
+  useEffect(() => {
+    if (route.params?.selectedPlace && route.params?.mode) {
+      const place = route.params.selectedPlace;
+      const location = {
+        lat: place.latitude,
+        lng: place.longitude,
+        name: place.name,
+        address: place.address || place.description,
+      };
+
+      if (route.params.mode === 'start') {
+        setStart(location);
+      } else if (route.params.mode === 'end') {
+        setEnd(location);
+        // 최근 목적지에 자동 저장
+        saveRecentDestination(location);
+      }
+
+      // params 초기화 (중복 처리 방지)
+      navigation.setParams({
+        selectedPlace: undefined,
+        mode: undefined,
+      });
+    }
+  }, [route.params?.selectedPlace, route.params?.mode]);
+
   // 출발지/목적지가 모두 입력되면 자동으로 경로 계산
-  // excludedHazardTypes가 변경되면 경로 재계산
+  // excludedHazardTypes가 변경되면 경로 재계산 (debounced)
   useEffect(() => {
     if (startLocation && endLocation) {
-      calculateRoutes();
+      // 필터 변경은 debounced, 출발지/목적지는 즉시 실행
+      debouncedCalculateRoutes();
     } else {
       setRoutesList([]);
     }
-  }, [startLocation, endLocation, transportationMode, excludedHazardTypes, calculateRoutes]);
+
+    // Cleanup: 컴포넌트 언마운트 시 pending된 timeout 취소
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, [startLocation, endLocation, transportationMode, excludedHazardTypes, debouncedCalculateRoutes]);
 
   const handleStartPress = () => {
     navigation.navigate('Search', { 
@@ -230,9 +275,8 @@ export default function RoutePlanningScreen() {
     // MapContext에 모든 경로 정보 저장 (지도에 모든 경로 표시하기 위해)
     // 선택된 경로만이 아니라 모든 경로를 유지
     setRouteResponse({ routes: routes });
-    // 위험 정보 브리핑 열기
-    openHazardBriefing();
     // 지도 탭으로 이동 (TabNavigator의 MapStack 탭)
+    // 경로 위험 정보 모달은 자동으로 열지 않음 (사용자가 상세 정보 버튼을 누를 때 열림)
     navigation.dispatch(
       CommonActions.navigate({
         name: 'MapStack',
@@ -244,7 +288,7 @@ export default function RoutePlanningScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={styles.container}>
       <ScrollView 
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -277,6 +321,7 @@ export default function RoutePlanningScreen() {
           />
         </View>
 
+
         {/* 경로 목록 */}
         {isCalculating ? (
           <View style={styles.loadingContainer}>
@@ -285,13 +330,7 @@ export default function RoutePlanningScreen() {
           </View>
         ) : routes.length > 0 ? (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{t('route.comparison')}</Text>
-            <RouteComparison
-              routes={routes}
-              selectedRoute={selectedRoute}
-              onSelect={handleRouteSelect}
-            />
-            {/* 전체 경로 목록 */}
+            {/* 경로 목록 */}
             <View style={styles.routeListContainer}>
               <View style={styles.routeListHeader}>
                 <View style={styles.headerTitleContainer}>
@@ -377,9 +416,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: Spacing.lg,
+    paddingTop: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.lg,
   },
   section: {
+    marginTop: Spacing.md,
     marginBottom: Spacing.xl,
   },
   routeListContainer: {

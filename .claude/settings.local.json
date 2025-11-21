@@ -62,7 +62,20 @@
       "Bash(cmd /c \"rmdir /s /q C:\\Users\\ki040\\verisafe\\docs\")",
       "Bash(cmd /c \"dir /b C:\\Users\\ki040\\verisafe\\backend\\app\\services\\ai\")",
       "Bash(cmd /c \"dir /b C:\\Users\\ki040\\verisafe\\backend\\app\\services\\satellite\")",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(npx expo start:*)",
+      "Bash(cmd /c \"taskkill /PID 8968 /F\")",
+      "Bash(cmd /c \"dir /b C:\\Users\\ki040\\verisafe\")",
+      "Bash(npx create-next-app@latest:*)",
+      "Bash(cmd /c \"tasklist | findstr python\")",
+      "Bash(cmd /c \"taskkill /PID 7384 /F\")",
+      "Bash(start cmd:*)",
+      "Bash(cmd /c \"taskkill /F /PID 7384\")",
+      "Bash(git checkout:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(cmd /c:*)"
     ],
     "deny": [],
     "ask": []

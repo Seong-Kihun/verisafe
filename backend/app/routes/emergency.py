@@ -1,5 +1,5 @@
 """긴급 상황 API"""
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
 import math
@@ -13,7 +13,9 @@ from app.schemas.emergency import (
     SOSCancelRequest,
     SOSCancelResponse
 )
+from app.utils.helpers import db_transaction
 from app.utils.logger import get_logger
+from app.middleware.rate_limiter import limiter
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -38,12 +40,14 @@ def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
 
 
 @router.post("/sos", response_model=SOSTriggerResponse)
+@limiter.limit("5/minute")  # 1분에 5회로 제한 (긴급 상황이지만 스팸 방지)
 async def trigger_sos(
+    http_request: Request,
     sos_data: SOSEventCreate,
     db: Session = Depends(get_db)
 ):
     """
-    SOS 긴급 알림 발동
+    SOS 긴급 알림 발동 (속도 제한 5/분)
 
     Parameters:
     - user_id: 사용자 ID
@@ -54,9 +58,12 @@ async def trigger_sos(
     Returns:
     - SOS 이벤트 ID
     - 가장 가까운 안전 대피처 정보
+
+    Rate Limit:
+    - 5 requests per minute (긴급 상황이지만 스팸 방지)
     """
-    try:
-        # 1. SOS 이벤트 저장
+    # 1. SOS 이벤트 저장
+    with db_transaction(db, "SOS 이벤트 저장"):
         sos_event = SOSEvent(
             user_id=sos_data.user_id,
             latitude=sos_data.latitude,
@@ -66,55 +73,49 @@ async def trigger_sos(
         )
 
         db.add(sos_event)
-        db.commit()
-        db.refresh(sos_event)
 
-        logger.warning(f"[SOS] User {sos_data.user_id} activated SOS at ({sos_data.latitude}, {sos_data.longitude})")
+    db.refresh(sos_event)
+    logger.warning(f"[SOS] User {sos_data.user_id} activated SOS at ({sos_data.latitude}, {sos_data.longitude})")
 
-        # 2. 가장 가까운 안전 대피처 찾기
-        havens = db.query(SafeHaven).all()
-        nearest_haven = None
-        min_distance = float('inf')
+    # 2. 가장 가까운 안전 대피처 찾기
+    havens = db.query(SafeHaven).all()
+    nearest_haven = None
+    min_distance = float('inf')
 
-        for haven in havens:
-            distance = calculate_distance(
-                sos_data.latitude,
-                sos_data.longitude,
-                haven.latitude,
-                haven.longitude
-            )
-            if distance < min_distance:
-                min_distance = distance
-                nearest_haven = haven
+    for haven in havens:
+        distance = calculate_distance(
+            sos_data.latitude,
+            sos_data.longitude,
+            haven.latitude,
+            haven.longitude
+        )
+        if distance < min_distance:
+            min_distance = distance
+            nearest_haven = haven
 
-        # 3. 응답 데이터 준비
-        nearest_safe_haven = None
-        if nearest_haven:
-            nearest_safe_haven = {
-                "id": nearest_haven.id,
-                "name": nearest_haven.name,
-                "category": nearest_haven.category,
-                "latitude": nearest_haven.latitude,
-                "longitude": nearest_haven.longitude,
-                "address": nearest_haven.address,
-                "phone": nearest_haven.phone,
-                "distance": round(min_distance, 2)
-            }
-
-        logger.info(f"[SOS] SOS event {sos_event.id} created. Nearest haven: {nearest_haven.name if nearest_haven else 'None'}")
-
-        return {
-            "success": True,
-            "sos_id": sos_event.id,
-            "timestamp": sos_event.created_at,
-            "nearest_safe_haven": nearest_safe_haven,
-            "message": "SOS alert sent successfully"
+    # 3. 응답 데이터 준비
+    nearest_safe_haven = None
+    if nearest_haven:
+        nearest_safe_haven = {
+            "id": nearest_haven.id,
+            "name": nearest_haven.name,
+            "category": nearest_haven.category,
+            "latitude": nearest_haven.latitude,
+            "longitude": nearest_haven.longitude,
+            "address": nearest_haven.address,
+            "phone": nearest_haven.phone,
+            "distance": round(min_distance, 2)
         }
 
-    except Exception as e:
-        logger.error(f"Error processing SOS: {e}", exc_info=True)
-        db.rollback()
-        raise HTTPException(status_code=500, detail=f"Failed to process SOS: {str(e)}")
+    logger.info(f"[SOS] SOS event {sos_event.id} created. Nearest haven: {nearest_haven.name if nearest_haven else 'None'}")
+
+    return {
+        "success": True,
+        "sos_id": sos_event.id,
+        "timestamp": sos_event.created_at,
+        "nearest_safe_haven": nearest_safe_haven,
+        "message": "SOS alert sent successfully"
+    }
 
 
 @router.post("/sos/{sos_id}/cancel", response_model=SOSCancelResponse)
@@ -133,38 +134,30 @@ async def cancel_sos(
     Returns:
     - 취소 성공 여부
     """
-    try:
-        # SOS 이벤트 조회
-        sos_event = db.query(SOSEvent).filter(
-            SOSEvent.id == sos_id,
-            SOSEvent.user_id == cancel_data.user_id,
-            SOSEvent.status == 'active'
-        ).first()
+    # SOS 이벤트 조회
+    sos_event = db.query(SOSEvent).filter(
+        SOSEvent.id == sos_id,
+        SOSEvent.user_id == cancel_data.user_id,
+        SOSEvent.status == 'active'
+    ).first()
 
-        if not sos_event:
-            raise HTTPException(
-                status_code=404,
-                detail="SOS not found or already resolved"
-            )
+    if not sos_event:
+        raise HTTPException(
+            status_code=404,
+            detail="SOS not found or already resolved"
+        )
 
-        # 상태 업데이트
+    # 상태 업데이트
+    with db_transaction(db, "SOS 취소"):
         sos_event.status = 'cancelled'
         sos_event.resolved_at = func.now()
-        db.commit()
 
-        logger.info(f"[SOS] User {cancel_data.user_id} cancelled SOS {sos_id}")
+    logger.info(f"[SOS] User {cancel_data.user_id} cancelled SOS {sos_id}")
 
-        return {
-            "success": True,
-            "message": "SOS cancelled successfully"
-        }
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error cancelling SOS: {e}", exc_info=True)
-        db.rollback()
-        raise HTTPException(status_code=500, detail=f"Failed to cancel SOS: {str(e)}")
+    return {
+        "success": True,
+        "message": "SOS cancelled successfully"
+    }
 
 
 @router.get("/sos/user/{user_id}")

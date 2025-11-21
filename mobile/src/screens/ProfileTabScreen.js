@@ -12,6 +12,8 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
+  Linking,
+  Platform,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
@@ -221,6 +223,32 @@ export default function ProfileTabScreen({ navigation }) {
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>{t('profile.myActivity')}</Text>
         </View>
+
+        {/* 매퍼/관리자 전용: 웹 포털 링크 */}
+        {user && (user.role === 'mapper' || user.role === 'admin') && (
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => {
+              const portalUrl = Platform.OS === 'web'
+                ? 'http://localhost:3000'
+                : 'http://192.168.45.177:3000';
+              Linking.openURL(portalUrl).catch(err =>
+                console.error('Failed to open URL:', err)
+              );
+            }}
+          >
+            <View style={styles.menuLeft}>
+              <Icon name="computer" size={24} color={Colors.primary} />
+              <View>
+                <Text style={styles.menuLabel}>매핑 포털</Text>
+                <Text style={styles.menuDescription}>
+                  {user.role === 'admin' ? '지도 편집 & 검수하기' : '지도 편집하기'}
+                </Text>
+              </View>
+            </View>
+            <Icon name="chevronRight" size={20} color={Colors.textTertiary} />
+          </TouchableOpacity>
+        )}
 
         <TouchableOpacity
           style={styles.menuItem}

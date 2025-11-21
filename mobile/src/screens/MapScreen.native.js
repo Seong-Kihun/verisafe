@@ -16,25 +16,39 @@ import { mapAPI, routeAPI, emergencyAPI } from '../services/api';
 import { useMapContext } from '../contexts/MapContext';
 import { useRoutePlanningContext } from '../contexts/RoutePlanningContext';
 import { useHazardFilter } from '../contexts/HazardFilterContext';
+import { useNavigation as useNavContext } from '../contexts/NavigationContext';
 import { emergencyContactsStorage, userProfileStorage } from '../services/storage';
 import { sendSOSSMS } from '../services/sms';
 import PlaceDetailSheet from '../components/PlaceDetailSheet';
 import RouteResultSheet from '../components/RouteResultSheet';
 import RouteHazardBriefing from '../components/RouteHazardBriefing';
 import SearchBar from '../components/SearchBar';
+import RouteInputBar from '../components/RouteInputBar';
+import RouteCarousel from '../components/RouteCarousel';
 import Icon from '../components/icons/Icon';
 import LayerToggleMenu from '../components/LayerToggleMenu';
 import FloatingActionButton from '../components/FloatingActionButton';
 import SafetyIndicator from '../components/SafetyIndicator';
 import SOSConfirmModal from '../components/SOSConfirmModal';
-import { HAZARD_TYPES } from '../constants/hazardTypes';
+import { HAZARD_TYPES, getHazardColor } from '../constants/hazardTypes';
 
-const JUBA_CENTER = {
-  latitude: 4.8594,
-  longitude: 31.5713,
-  latitudeDelta: 0.05,
-  longitudeDelta: 0.05,
+// 국가별 기본 지도 중심
+const DEFAULT_CENTERS = {
+  SS: { // South Sudan (Juba)
+    latitude: 4.8594,
+    longitude: 31.5713,
+    latitudeDelta: 0.05,
+    longitudeDelta: 0.05,
+  },
+  KR: { // South Korea (Seoul)
+    latitude: 37.5665,
+    longitude: 126.9780,
+    latitudeDelta: 0.05,
+    longitudeDelta: 0.05,
+  },
 };
+
+const JUBA_CENTER = DEFAULT_CENTERS.SS; // 하위 호환성
 
 export default function MapScreen() {
   const insets = useSafeAreaInsets();
@@ -48,6 +62,7 @@ export default function MapScreen() {
     updateUserLocation,
     openPlaceSheet,
     setRouteResponse,
+    clearRouteResponse,
     userCountry
   } = useMapContext();
 
@@ -57,11 +72,16 @@ export default function MapScreen() {
     startLocation,
     endLocation,
     isHazardBriefingOpen,
+    openHazardBriefing,
     closeHazardBriefing,
-    selectRoute
+    selectRoute,
+    shouldReopenBriefing,
+    setShouldReopenBriefing,
+    reset: resetRoutePlanning
   } = useRoutePlanningContext();
 
   const { excludedHazardTypes, toggleHazardType } = useHazardFilter();
+  const { startNavigation } = useNavContext();
 
   const [loading, setLoading] = useState(true);
   const [landmarks, setLandmarks] = useState([]);
@@ -98,9 +118,14 @@ export default function MapScreen() {
     };
   }, []);
 
-  // 국가 변경 시 지도 데이터 재로드
+  // 국가 변경 시 지도 데이터 재로드 및 지도 중심 업데이트
   useEffect(() => {
     loadMapData();
+
+    // userCountry에 따라 지도 중심 설정
+    if (userCountry && DEFAULT_CENTERS[userCountry]) {
+      setMapRegion(DEFAULT_CENTERS[userCountry]);
+    }
   }, [userCountry]);
 
   // 화면 포커스 시 긴급 연락처 재로드 (다른 화면에서 편집했을 수 있음)
@@ -109,6 +134,15 @@ export default function MapScreen() {
       loadEmergencyContacts();
     }, [])
   );
+
+  // PlaceSheet가 닫힐 때 경로 위험 정보 모달 재오픈
+  useEffect(() => {
+    if (!isPlaceSheetOpen && shouldReopenBriefing) {
+      // PlaceSheet가 닫혔고, 재오픈 플래그가 설정되어 있으면
+      setShouldReopenBriefing(false); // 플래그 초기화
+      openHazardBriefing(); // 경로 위험 정보 모달 다시 열기
+    }
+  }, [isPlaceSheetOpen, shouldReopenBriefing]);
 
   // 긴급 연락처 로드
   const loadEmergencyContacts = async () => {
@@ -131,10 +165,24 @@ export default function MapScreen() {
           longitude: location.coords.longitude,
         };
         updateUserLocation(loc);
+
+        // 사용자의 실제 위치로 지도 이동
+        setMapRegion({
+          latitude: loc.latitude,
+          longitude: loc.longitude,
+          latitudeDelta: 0.05,
+          longitudeDelta: 0.05,
+        });
       }
     } catch (error) {
       console.error('[MapScreen] Location permission error:', error);
     }
+  };
+
+  // 경로 찾기 모드 종료
+  const handleClearRoute = () => {
+    resetRoutePlanning(); // 출발지, 목적지, 경로 등 모두 초기화
+    clearRouteResponse(); // 지도에 표시된 경로 초기화
   };
 
   // SOS 버튼 클릭
@@ -634,63 +682,38 @@ export default function MapScreen() {
     }, DOUBLE_TAP_DELAY);
   };
 
-  // 롱 프레스 핸들러 - 장소 선택 또는 빠른 제보
+  // 롱 프레스 핸들러 - 장소 정보 바로 보기
   const handleLongPress = async (event) => {
     const { latitude, longitude } = event.nativeEvent.coordinate;
 
-    // 옵션 선택 다이얼로그
-    Alert.alert(
-      '지도 작업',
-      `위도: ${latitude.toFixed(5)}\n경도: ${longitude.toFixed(5)}`,
-      [
-        {
-          text: '📍 여기 제보하기',
-          onPress: () => {
-            navigation.navigate('Report', {
-              location: { latitude, longitude },
-            });
-          },
-        },
-        {
-          text: '🔍 장소 정보 보기',
-          onPress: async () => {
-            try {
-              // 좌표로 역지오코딩하여 장소 정보 조회
-              const response = await mapAPI.reverseGeocode(latitude, longitude);
-              if (response.data) {
-                const placeData = response.data;
-                openPlaceSheet({
-                  id: placeData.id,
-                  latitude: placeData.latitude,
-                  longitude: placeData.longitude,
-                  name: placeData.name || '선택한 위치',
-                  address: placeData.description || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
-                  category: placeData.category || 'other',
-                  description: placeData.description,
-                  type: 'osm',
-                });
-              }
-            } catch (error) {
-              console.error('Failed to reverse geocode:', error);
-              // 에러 시에도 기본 정보로 PlaceDetailSheet 열기
-              openPlaceSheet({
-                latitude,
-                longitude,
-                name: '선택한 위치',
-                address: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
-                category: 'other',
-                type: 'osm',
-              });
-            }
-          },
-        },
-        {
-          text: '취소',
-          style: 'cancel',
-        },
-      ],
-      { cancelable: true }
-    );
+    try {
+      // 좌표로 역지오코딩하여 장소 정보 조회
+      const response = await mapAPI.reverseGeocode(latitude, longitude);
+      if (response.data) {
+        const placeData = response.data;
+        openPlaceSheet({
+          id: placeData.id,
+          latitude: placeData.latitude,
+          longitude: placeData.longitude,
+          name: placeData.name || '선택한 위치',
+          address: placeData.description || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
+          category: placeData.category || 'other',
+          description: placeData.description,
+          type: 'osm',
+        });
+      }
+    } catch (error) {
+      console.error('Failed to reverse geocode:', error);
+      // 에러 시에도 기본 정보로 PlaceDetailSheet 열기
+      openPlaceSheet({
+        latitude,
+        longitude,
+        name: '선택한 위치',
+        address: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
+        category: 'other',
+        type: 'osm',
+      });
+    }
   };
 
   if (loading) {
@@ -801,8 +824,9 @@ export default function MapScreen() {
             // 위험 정보 반경 (km → m 변환) - 백엔드에서 제공하는 radius 사용
             // 스코어링 테이블의 default_radius_km 값이 사용됨
             const radiusMeters = (hazard.radius || 0.1) * 1000; // km → m 변환
-            const riskColor = getRiskColor(hazard.risk_score);
-            
+            // 위험 유형별 색상 사용 (getHazardColor from hazardTypes.js)
+            const hazardColor = getHazardColor(hazard.hazard_type);
+
             return (
               <React.Fragment key={hazard.id}>
                 {/* 위험 범위 Circle */}
@@ -812,11 +836,11 @@ export default function MapScreen() {
                     longitude: hazard.longitude,
                   }}
                   radius={radiusMeters}
-                  fillColor={`${riskColor}30`} // 30% 투명도
-                  strokeColor={riskColor}
+                  fillColor={`${hazardColor}30`} // 30% 투명도
+                  strokeColor={hazardColor}
                   strokeWidth={2}
                 />
-                
+
                 {/* 위험 정보 마커 */}
                 <Marker
                   coordinate={{
@@ -825,7 +849,7 @@ export default function MapScreen() {
                   }}
                   title={`위험: ${getHazardName(hazard.hazard_type)}`}
                   description={hazard.description}
-                  pinColor={riskColor}
+                  pinColor={hazardColor}
                   onPress={() => {
                     // 위험 정보 클릭 시 장소 정보 카드 표시
                     openPlaceSheet({
@@ -963,24 +987,58 @@ export default function MapScreen() {
       {/* 플로팅 검색 바 & 레이어 버튼 */}
       <View style={{
         position: 'absolute',
-        top: insets.top,
+        top: 8,
         left: 0,
         right: 0,
         zIndex: 1000,
       }}>
         {/* 검색바 + 레이어 버튼 */}
         <View style={{
-          paddingTop: Spacing.xs,
+          paddingTop: 4,
           paddingHorizontal: Spacing.md,
           flexDirection: 'row',
           alignItems: 'center',
           gap: Spacing.sm,
         }}>
           <View style={{ flex: 1 }}>
-            <SearchBar
-              onPress={() => navigation.navigate('Search')}
-              placeholder="어디로 갈까요?"
-            />
+            {startLocation && endLocation ? (
+              // 경로가 있을 때: 출발지/목적지 표시
+              <View style={styles.routeInfoContainer}>
+                <TouchableOpacity
+                  style={styles.routeInfoContent}
+                  onPress={() => navigation.navigate('RoutePlanning')}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.routeInfoRow}>
+                    <Icon name="location" size={16} color={Colors.primary} />
+                    <Text style={styles.routeInfoText} numberOfLines={1}>
+                      {startLocation.name || '출발지'}
+                    </Text>
+                  </View>
+                  <View style={styles.routeInfoDivider} />
+                  <View style={styles.routeInfoRow}>
+                    <Icon name="navigation" size={16} color={Colors.error} />
+                    <Text style={styles.routeInfoText} numberOfLines={1}>
+                      {endLocation.name || '목적지'}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.routeCloseButton}
+                  onPress={handleClearRoute}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Icon name="close" size={20} color={Colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
+            ) : (
+              // 경로가 없을 때: 검색바
+              <SearchBar
+                onPress={() => navigation.navigate('Search')}
+                placeholder="어디로 갈까요?"
+              />
+            )}
           </View>
           <TouchableOpacity
             style={styles.layerButton}
@@ -1013,79 +1071,37 @@ export default function MapScreen() {
         <Icon name="myLocation" size={24} color={Colors.primary} />
       </TouchableOpacity>
 
-      {/* SOS 긴급 버튼 */}
-      <TouchableOpacity
-        style={styles.sosButton}
-        onPress={handleSOSButtonPress}
-        activeOpacity={0.8}
-      >
-        <Icon name="warning" size={28} color={Colors.textInverse} />
-        <Text style={styles.sosButtonText}>SOS</Text>
-      </TouchableOpacity>
-
       {/* FAB - 경로 찾기 버튼 */}
       <FloatingActionButton />
 
-      {/* 경로 토글 버튼 - 안전 경로/최소시간 경로 전환 */}
-      {selectedRoute && routes.length > 1 && (() => {
-        const safeRoute = routes.find(r => r.type === 'safe');
-        const fastRoute = routes.find(r => r.type === 'fast');
-        
-        const handleToggleRoute = (route) => {
-          selectRoute(route);
-          setRouteResponse({ routes: [route] });
-        };
-        
-        return (safeRoute || fastRoute) ? (
-          <View style={styles.routeToggleContainer}>
-            {safeRoute && (
-              <TouchableOpacity
-                style={[
-                  styles.routeToggleButton,
-                  selectedRoute.type === 'safe' && styles.routeToggleButtonActive
-                ]}
-                onPress={() => handleToggleRoute(safeRoute)}
-                activeOpacity={0.8}
-              >
-                <Icon 
-                  name="safe" 
-                  size={20} 
-                  color={selectedRoute.type === 'safe' ? Colors.textInverse : Colors.textSecondary} 
-                />
-                <Text style={[
-                  styles.routeToggleText,
-                  selectedRoute.type === 'safe' && styles.routeToggleTextActive
-                ]}>
-                  안전 경로
-                </Text>
-              </TouchableOpacity>
-            )}
-            
-            {fastRoute && (
-              <TouchableOpacity
-                style={[
-                  styles.routeToggleButton,
-                  selectedRoute.type === 'fast' && styles.routeToggleButtonActive
-                ]}
-                onPress={() => handleToggleRoute(fastRoute)}
-                activeOpacity={0.8}
-              >
-                <Icon 
-                  name="fast" 
-                  size={20} 
-                  color={selectedRoute.type === 'fast' ? Colors.textInverse : Colors.textSecondary} 
-                />
-                <Text style={[
-                  styles.routeToggleText,
-                  selectedRoute.type === 'fast' && styles.routeToggleTextActive
-                ]}>
-                  최소시간
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        ) : null;
-      })()}
+      {/* RouteCarousel - 경로 카드 캐러셀 */}
+      {routes.length > 0 && (
+        <RouteCarousel
+          routes={routes}
+          selectedRoute={selectedRoute}
+          onSelectRoute={(route) => {
+            selectRoute(route);
+            setRouteResponse({ routes: [route] });
+          }}
+          onShowDetail={(route) => {
+            // 경로 위험 정보 모달 열기
+            openHazardBriefing();
+          }}
+          onStartNavigation={async (route) => {
+            try {
+              await startNavigation(route);
+              navigation.navigate('NavigationScreen');
+            } catch (error) {
+              console.error('[MapScreen] Navigation start failed:', error);
+              Alert.alert(
+                '오류',
+                '네비게이션을 시작할 수 없습니다.\n위치 권한을 확인해주세요.',
+                [{ text: '확인' }]
+              );
+            }
+          }}
+        />
+      )}
 
       {/* PlaceDetailSheet */}
       {isPlaceSheetOpen && <PlaceDetailSheet />}
@@ -1110,15 +1126,6 @@ export default function MapScreen() {
         onToggle={handleHazardTypeFilter}
         timeFilter={timeFilter}
         onTimeFilterChange={handleTimeFilterChange}
-      />
-
-      {/* SOS 확인 모달 */}
-      <SOSConfirmModal
-        visible={isSOSModalOpen}
-        onConfirm={handleSOSConfirm}
-        onCancel={handleSOSCancel}
-        emergencyContactsCount={emergencyContacts.length}
-        userLocation={userLocation}
       />
 
       {/* OpenStreetMap 저작권 표시 */}
@@ -1204,8 +1211,8 @@ const styles = StyleSheet.create({
   },
   myLocationButton: {
     position: 'absolute',
-    right: Spacing.lg,
-    bottom: Spacing.xl + 72,
+    right: Spacing.xl,  // lg → xl (FAB와 동일하게)
+    bottom: Spacing.xl + 72,  // FAB 위에 배치
     width: 56,
     height: 56,
     borderRadius: 28,
@@ -1240,6 +1247,42 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 11,
     marginTop: 2,
+  },
+  // 경로 정보 컨테이너
+  routeInfoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.surface,
+    borderRadius: 12,
+    shadowColor: Colors.shadowDark,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  routeInfoContent: {
+    flex: 1,
+    padding: Spacing.sm,
+  },
+  routeInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  routeInfoText: {
+    ...Typography.body,
+    fontSize: 13,
+    color: Colors.textPrimary,
+    flex: 1,
+  },
+  routeInfoDivider: {
+    height: 1,
+    backgroundColor: Colors.border,
+    marginVertical: Spacing.xs,
+  },
+  routeCloseButton: {
+    padding: Spacing.sm,
+    paddingLeft: Spacing.xs,
   },
   userLocationMarker: {
     width: 20,
@@ -1300,6 +1343,30 @@ const styles = StyleSheet.create({
   osmAttributionText: {
     fontSize: 10,
     color: Colors.textSecondary,
+  },
+  // 안내 시작 버튼
+  startNavigationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.xl,
+    backgroundColor: Colors.primary,
+    borderRadius: 16,
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.md,
+    gap: Spacing.sm,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  startNavigationButtonText: {
+    ...Typography.button,
+    fontSize: 18,
+    color: Colors.textInverse,
+    fontWeight: '700',
   },
 });
 

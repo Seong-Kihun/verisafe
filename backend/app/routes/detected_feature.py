@@ -12,6 +12,7 @@ from app.schemas.detected_feature import (
 )
 from app.models.detected_feature import DetectedFeature
 from app.database import get_db
+from app.utils.helpers import db_transaction
 from app.utils.logger import get_logger
 
 router = APIRouter()
@@ -178,20 +179,19 @@ async def verify_detected_feature(
         if not feature:
             raise HTTPException(status_code=404, detail="Feature not found")
 
-        # 검증 카운트 증가
-        feature.verification_count += 1
+        with db_transaction(db, "AI 감지 항목 검증"):
+            # 검증 카운트 증가
+            feature.verification_count += 1
 
-        # 검증 판정 (3명 이상 검증하면 verified=True)
-        if verification.is_correct:
-            if feature.verification_count >= 3:
-                feature.verified = True
-                from datetime import datetime
-                feature.last_verified_at = datetime.utcnow()
-        else:
-            # 틀렸다고 판정하면 신뢰도 낮춤
-            feature.confidence = max(0.0, feature.confidence - 0.1)
-
-        db.commit()
+            # 검증 판정 (3명 이상 검증하면 verified=True)
+            if verification.is_correct:
+                if feature.verification_count >= 3:
+                    feature.verified = True
+                    from datetime import datetime
+                    feature.last_verified_at = datetime.utcnow()
+            else:
+                # 틀렸다고 판정하면 신뢰도 낮춤
+                feature.confidence = max(0.0, feature.confidence - 0.1)
 
         logger.info(f"감지 항목 검증: {feature_id}, 올바름={verification.is_correct}")
 
@@ -224,8 +224,8 @@ async def delete_detected_feature(
         if not feature:
             raise HTTPException(status_code=404, detail="Feature not found")
 
-        db.delete(feature)
-        db.commit()
+        with db_transaction(db, "AI 감지 항목 삭제"):
+            db.delete(feature)
 
         logger.info(f"감지 항목 삭제: {feature_id}")
 

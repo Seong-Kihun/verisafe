@@ -1,0 +1,38 @@
+{
+  "name": "verisafe-web-portal",
+  "version": "1.0.0",
+  "description": "VeriSafe Mapper & Reviewer Web Portal",
+  "scripts": {
+    "dev": "next dev -p 3000",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": ["verisafe", "mapping", "review", "gis"],
+  "author": "VeriSafe Team",
+  "license": "MIT",
+  "dependencies": {
+    "@tanstack/react-query": "^5.90.7",
+    "@types/leaflet": "^1.9.21",
+    "@types/leaflet-draw": "^1.0.13",
+    "axios": "^1.13.2",
+    "leaflet": "^1.9.4",
+    "leaflet-draw": "^1.0.4",
+    "next": "^16.0.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-leaflet": "^5.0.0",
+    "zustand": "^5.0.8"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.0",
+    "@types/react": "^19.2.2",
+    "autoprefixer": "^10.4.21",
+    "eslint": "^9.39.1",
+    "eslint-config-next": "^16.0.1",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.17",
+    "typescript": "^5.9.3"
+  }
+}

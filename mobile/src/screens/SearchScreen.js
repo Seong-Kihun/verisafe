@@ -49,9 +49,8 @@ export default function SearchScreen() {
   const route = useRoute();
   const { closeSearch, openPlaceSheet } = useMapContext();
   
-  // Route params에서 mode와 onSelect 가져오기
+  // Route params에서 mode 가져오기
   const mode = route.params?.mode || 'general'; // 'start', 'end', 'general'
-  const onSelectCallback = route.params?.onSelect;
   
   const [query, setQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -123,10 +122,12 @@ export default function SearchScreen() {
           category: null,
         };
 
-        // RoutePlanningScreen에서 호출한 경우 (onSelect callback 있음)
-        if (onSelectCallback) {
-          onSelectCallback(placeData);
-          navigation.goBack();
+        // RoutePlanningScreen에서 호출한 경우
+        if (mode === 'start' || mode === 'end') {
+          navigation.navigate('RoutePlanning', {
+            selectedPlace: placeData,
+            mode: mode,
+          });
           Keyboard.dismiss();
           return;
         }
@@ -156,9 +157,11 @@ export default function SearchScreen() {
         };
 
         // RoutePlanningScreen에서 호출한 경우
-        if (onSelectCallback) {
-          onSelectCallback(placeData);
-          navigation.goBack();
+        if (mode === 'start' || mode === 'end') {
+          navigation.navigate('RoutePlanning', {
+            selectedPlace: placeData,
+            mode: mode,
+          });
           Keyboard.dismiss();
           return;
         }
@@ -191,9 +194,11 @@ export default function SearchScreen() {
           category: null,
         };
 
-        if (onSelectCallback) {
-          onSelectCallback(placeData);
-          navigation.goBack();
+        if (mode === 'start' || mode === 'end') {
+          navigation.navigate('RoutePlanning', {
+            selectedPlace: placeData,
+            mode: mode,
+          });
         } else {
           openPlaceSheet(placeData);
           closeSearch();
@@ -258,10 +263,10 @@ export default function SearchScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* 헤더 */}
       <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton} 
+        <TouchableOpacity
+          style={styles.backButton}
           onPress={() => {
-            if (onSelectCallback) {
+            if (mode === 'start' || mode === 'end') {
               navigation.goBack();
             } else {
               closeSearch();
@@ -289,14 +294,40 @@ export default function SearchScreen() {
             autoFocus
           />
           {isSearching && (
-            <ActivityIndicator 
-              size="small" 
-              color={Colors.primary} 
+            <ActivityIndicator
+              size="small"
+              color={Colors.primary}
               style={styles.loadingIndicator}
             />
           )}
         </View>
       </View>
+
+      {/* 지도에서 선택 버튼 (경로찾기 모드일 때만 표시) */}
+      {(mode === 'start' || mode === 'end') && (
+        <TouchableOpacity
+          style={styles.mapSelectButton}
+          onPress={() => {
+            navigation.goBack();
+            // MapScreen으로 이동하면서 selectLocationMode 전달
+            navigation.dispatch(
+              CommonActions.navigate({
+                name: 'MapStack',
+                params: {
+                  screen: 'MapMain',
+                  params: {
+                    selectLocationMode: mode,
+                  },
+                },
+              })
+            );
+          }}
+          activeOpacity={0.8}
+        >
+          <Icon name="map" size={20} color={Colors.primary} />
+          <Text style={styles.mapSelectButtonText}>지도에서 선택</Text>
+        </TouchableOpacity>
+      )}
 
       {/* 검색 결과 / 최근 검색어 */}
       <KeyboardAvoidingView
@@ -534,6 +565,23 @@ const styles = StyleSheet.create({
     ...Typography.labelSmall,
     color: Colors.textPrimary,
     textAlign: 'center',
+  },
+  mapSelectButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.primary + '10',
+    borderRadius: 8,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    marginHorizontal: Spacing.md,
+    marginVertical: Spacing.sm,
+    gap: Spacing.xs,
+  },
+  mapSelectButtonText: {
+    ...Typography.labelSmall,
+    color: Colors.primary,
+    fontWeight: '600',
   },
 });
 

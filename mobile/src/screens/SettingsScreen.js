@@ -14,6 +14,7 @@ import {
   ActivityIndicator,
   Share,
   Modal,
+  TextInput,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Colors, Typography, Spacing } from '../styles';
@@ -527,6 +528,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
   },
+  sectionDescription: {
+    ...Typography.body,
+    color: Colors.textSecondary,
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.md,
+  },
   settingItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -545,6 +552,11 @@ const styles = StyleSheet.create({
   settingLabel: {
     ...Typography.body,
     color: Colors.textPrimary,
+  },
+  settingDescription: {
+    ...Typography.caption,
+    color: Colors.textSecondary,
+    marginTop: 4,
   },
   settingRight: {
     flexDirection: 'row',

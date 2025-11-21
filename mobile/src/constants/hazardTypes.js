@@ -6,13 +6,11 @@
  */
 
 export const HAZARD_TYPES = [
-  // 무력 충돌 관련
+  // 무력 충돌
   { id: 'armed_conflict', name: '무력충돌', icon: 'conflict', color: '#DC2626' },
-  { id: 'conflict', name: '충돌', icon: 'conflict', color: '#EF4444' },
 
-  // 시위/폭동 관련
+  // 시위/폭동
   { id: 'protest_riot', name: '시위/폭동', icon: 'protest', color: '#F59E0B' },
-  { id: 'protest', name: '시위', icon: 'protest', color: '#F97316' },
 
   // 검문소
   { id: 'checkpoint', name: '검문소', icon: 'checkpoint', color: '#FF6B6B' },
@@ -25,7 +23,7 @@ export const HAZARD_TYPES = [
   { id: 'flood', name: '홍수', icon: 'naturalDisaster', color: '#3B82F6' },
   { id: 'landslide', name: '산사태', icon: 'naturalDisaster', color: '#92400E' },
 
-  // 안전 대피처 (필터링 가능, 하지만 일반적으로는 제외하지 않음)
+  // 안전 대피처
   { id: 'safe_haven', name: '대피처', icon: 'safeHaven', color: '#10B981' },
 
   // 기타
@@ -52,7 +50,14 @@ export const TIME_FILTERS = [
  * 위험 유형별 아이콘 매핑
  */
 export const getHazardIcon = (hazardType) => {
-  const hazard = HAZARD_TYPES.find(h => h.id === hazardType);
+  // 백엔드 위험 유형을 프론트엔드 유형으로 매핑
+  const typeMapping = {
+    'conflict': 'armed_conflict',
+    'protest': 'protest_riot',
+  };
+
+  const mappedType = typeMapping[hazardType] || hazardType;
+  const hazard = HAZARD_TYPES.find(h => h.id === mappedType);
   return hazard?.icon || 'other';
 };
 
@@ -60,7 +65,14 @@ export const getHazardIcon = (hazardType) => {
  * 위험 유형별 색상 매핑
  */
 export const getHazardColor = (hazardType) => {
-  const hazard = HAZARD_TYPES.find(h => h.id === hazardType);
+  // 백엔드 위험 유형을 프론트엔드 유형으로 매핑
+  const typeMapping = {
+    'conflict': 'armed_conflict',
+    'protest': 'protest_riot',
+  };
+
+  const mappedType = typeMapping[hazardType] || hazardType;
+  const hazard = HAZARD_TYPES.find(h => h.id === mappedType);
   return hazard?.color || '#6B7280';
 };
 
@@ -68,6 +80,13 @@ export const getHazardColor = (hazardType) => {
  * 위험 유형별 이름 매핑
  */
 export const getHazardName = (hazardType) => {
-  const hazard = HAZARD_TYPES.find(h => h.id === hazardType);
+  // 백엔드 위험 유형을 프론트엔드 유형으로 매핑
+  const typeMapping = {
+    'conflict': 'armed_conflict',
+    'protest': 'protest_riot',
+  };
+
+  const mappedType = typeMapping[hazardType] || hazardType;
+  const hazard = HAZARD_TYPES.find(h => h.id === mappedType);
   return hazard?.name || '알 수 없음';
 };

@@ -10,6 +10,7 @@ from app.schemas.safety_checkin import (
     SafetyCheckinConfirmRequest,
     SafetyCheckinConfirmResponse
 )
+from app.utils.helpers import db_transaction
 from app.utils.logger import get_logger
 
 router = APIRouter()
@@ -34,7 +35,7 @@ async def register_checkin(
     Returns:
     - 체크인 ID 및 생성 시간
     """
-    try:
+    with db_transaction(db, "안전 체크인 등록"):
         checkin = SafetyCheckin(
             user_id=checkin_data.user_id,
             route_id=checkin_data.route_id,
@@ -45,22 +46,16 @@ async def register_checkin(
         )
 
         db.add(checkin)
-        db.commit()
-        db.refresh(checkin)
 
-        logger.info(f"[Safety Check-in] Registered for user {checkin_data.user_id}, ETA: {checkin_data.estimated_arrival_time}")
+    db.refresh(checkin)
+    logger.info(f"[Safety Check-in] Registered for user {checkin_data.user_id}, ETA: {checkin_data.estimated_arrival_time}")
 
-        return {
-            "success": True,
-            "checkin_id": checkin.id,
-            "created_at": checkin.created_at,
-            "message": "Safety check-in registered"
-        }
-
-    except Exception as e:
-        logger.error(f"Error registering safety check-in: {e}", exc_info=True)
-        db.rollback()
-        raise HTTPException(status_code=500, detail=f"Failed to register safety check-in: {str(e)}")
+    return {
+        "success": True,
+        "checkin_id": checkin.id,
+        "created_at": checkin.created_at,
+        "message": "Safety check-in registered"
+    }
 
 
 @router.post("/{checkin_id}/confirm", response_model=SafetyCheckinConfirmResponse)
@@ -79,35 +74,26 @@ async def confirm_checkin(
     Returns:
     - 확인 성공 여부
     """
-    try:
-        checkin = db.query(SafetyCheckin).filter(
-            SafetyCheckin.id == checkin_id,
-            SafetyCheckin.user_id == confirm_data.user_id,
-            SafetyCheckin.status == 'active'
-        ).first()
+    checkin = db.query(SafetyCheckin).filter(
+        SafetyCheckin.id == checkin_id,
+        SafetyCheckin.user_id == confirm_data.user_id,
+        SafetyCheckin.status == 'active'
+    ).first()
 
-        if not checkin:
-            raise HTTPException(
-                status_code=404,
-                detail="Check-in not found or already confirmed"
-            )
+    if not checkin:
+        raise HTTPException(
+            status_code=404,
+            detail="Check-in not found or already confirmed"
+        )
 
+    with db_transaction(db, "안전 도착 확인"):
         checkin.status = 'confirmed'
         from datetime import datetime
         checkin.confirmed_at = datetime.now()
 
-        db.commit()
+    logger.info(f"[Safety Check-in] User {confirm_data.user_id} confirmed arrival (check-in {checkin_id})")
 
-        logger.info(f"[Safety Check-in] User {confirm_data.user_id} confirmed arrival (check-in {checkin_id})")
-
-        return {
-            "success": True,
-            "message": "Arrival confirmed"
-        }
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error confirming check-in: {e}", exc_info=True)
-        db.rollback()
-        raise HTTPException(status_code=500, detail=f"Failed to confirm check-in: {str(e)}")
+    return {
+        "success": True,
+        "message": "Arrival confirmed"
+    }

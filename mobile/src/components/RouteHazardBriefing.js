@@ -17,26 +17,33 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Spacing, Typography } from '../styles';
 import { routeAPI } from '../services/api';
+import { useMapContext } from '../contexts/MapContext';
+import { useRoutePlanningContext } from '../contexts/RoutePlanningContext';
+import { useNavigation } from '@react-navigation/native';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-const MIN_SHEET_HEIGHT = 200; // 최소 높이
-const MAX_SHEET_HEIGHT = SCREEN_HEIGHT * 0.8; // 최대 높이 (화면의 80%)
+const MIN_SHEET_HEIGHT = SCREEN_HEIGHT * 0.3; // 최소 높이 (화면의 30%)
+const MID_SHEET_HEIGHT = SCREEN_HEIGHT * 0.6; // 중간 높이 (화면의 60%)
+const MAX_SHEET_HEIGHT = SCREEN_HEIGHT * 0.85; // 최대 높이 (화면의 85%)
 
 export default function RouteHazardBriefing({ route, isVisible, onClose }) {
+  const navigation = useNavigation();
+  const { openPlaceSheet } = useMapContext();
+  const { closeHazardBriefing, setShouldReopenBriefing } = useRoutePlanningContext();
   const insets = useSafeAreaInsets();
   const [hazards, setHazards] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   
   // 드래그 애니메이션
-  const panY = useRef(new Animated.Value(0)).current;
+  const panY = useRef(new Animated.Value(MAX_SHEET_HEIGHT - MIN_SHEET_HEIGHT)).current;
   const sheetHeight = useRef(MIN_SHEET_HEIGHT);
 
   useEffect(() => {
     if (isVisible && route && route.polyline) {
       loadHazards();
-      // 시트 초기 위치 설정
-      panY.setValue(0);
+      // 시트 초기 위치 설정 (30%만 보이도록)
+      panY.setValue(MAX_SHEET_HEIGHT - MIN_SHEET_HEIGHT);
       sheetHeight.current = MIN_SHEET_HEIGHT;
     }
   }, [isVisible, route]);
@@ -45,46 +52,88 @@ export default function RouteHazardBriefing({ route, isVisible, onClose }) {
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: (_, gestureState) => {
-        return Math.abs(gestureState.dy) > 5;
+        // 세로 드래그가 가로 드래그보다 클 때만 반응
+        return Math.abs(gestureState.dy) > Math.abs(gestureState.dx) && Math.abs(gestureState.dy) > 3;
       },
       onPanResponderGrant: () => {
+        // 드래그 시작 시 현재 값을 offset으로 설정
         panY.setOffset(panY._value);
+        panY.setValue(0);
       },
-      onPanResponderMove: (_, gestureState) => {
-        const newHeight = sheetHeight.current - gestureState.dy;
-        const clampedHeight = Math.max(MIN_SHEET_HEIGHT, Math.min(MAX_SHEET_HEIGHT, newHeight));
-        panY.setValue(-(sheetHeight.current - clampedHeight));
-      },
+      onPanResponderMove: Animated.event(
+        [null, { dy: panY }],
+        {
+          useNativeDriver: false,
+          listener: (_, gestureState) => {
+            // 범위 제한 적용
+            const newValue = panY._offset + gestureState.dy;
+            if (newValue < 0) {
+              // 위로 너무 많이 드래그 시 저항 추가 (rubber band effect)
+              panY.setValue(newValue * 0.4);
+            } else if (newValue > MAX_SHEET_HEIGHT - MIN_SHEET_HEIGHT) {
+              // 아래로 너무 많이 드래그 시 저항 추가
+              const excess = newValue - (MAX_SHEET_HEIGHT - MIN_SHEET_HEIGHT);
+              panY.setValue((MAX_SHEET_HEIGHT - MIN_SHEET_HEIGHT) + excess * 0.4);
+            }
+          }
+        }
+      ),
       onPanResponderRelease: (_, gestureState) => {
         panY.flattenOffset();
-        const newHeight = sheetHeight.current - gestureState.dy;
-        
-        // 스냅 처리
-        if (gestureState.dy > 50) {
-          // 아래로 드래그 - 닫기
-          Animated.timing(panY, {
-            toValue: MAX_SHEET_HEIGHT,
-            duration: 200,
-            useNativeDriver: true,
-          }).start(() => {
-            onClose();
-            panY.setValue(0);
-          });
-        } else if (gestureState.dy < -50) {
-          // 위로 드래그 - 최대 높이로
-          sheetHeight.current = MAX_SHEET_HEIGHT;
-          Animated.spring(panY, {
-            toValue: -(MAX_SHEET_HEIGHT - MIN_SHEET_HEIGHT),
-            useNativeDriver: true,
-          }).start();
+        const currentTranslateY = panY._value;
+
+        // 현재 보이는 시트 높이 계산
+        const currentVisibleHeight = MAX_SHEET_HEIGHT - currentTranslateY;
+
+        // 가장 가까운 스냅 포인트 찾기
+        let targetHeight;
+        const snapPoints = [MIN_SHEET_HEIGHT, MID_SHEET_HEIGHT, MAX_SHEET_HEIGHT];
+
+        // 빠른 스와이프 감지 (velocity 기반)
+        const isQuickSwipe = Math.abs(gestureState.vy) > 0.8;
+
+        if (isQuickSwipe) {
+          // 빠른 스와이프: 방향에 따라 다음/이전 스냅 포인트로
+          if (gestureState.dy > 0) {
+            // 아래로 스와이프
+            if (gestureState.dy > 150 && gestureState.vy > 1.2) {
+              // 강하게 아래로 - 닫기
+              Animated.timing(panY, {
+                toValue: SCREEN_HEIGHT,
+                duration: 280,
+                useNativeDriver: true,
+              }).start(() => {
+                onClose();
+                panY.setValue(MAX_SHEET_HEIGHT - MIN_SHEET_HEIGHT);
+                sheetHeight.current = MIN_SHEET_HEIGHT;
+              });
+              return;
+            } else {
+              // 한 단계 아래로 (높이 감소)
+              targetHeight = snapPoints.reverse().find(h => h < currentVisibleHeight) || MIN_SHEET_HEIGHT;
+              snapPoints.reverse(); // 원래대로
+            }
+          } else {
+            // 위로 스와이프 - 한 단계 위로 (높이 증가)
+            targetHeight = snapPoints.find(h => h > currentVisibleHeight) || MAX_SHEET_HEIGHT;
+          }
         } else {
-          // 원래 위치로
-          sheetHeight.current = MIN_SHEET_HEIGHT;
-          Animated.spring(panY, {
-            toValue: 0,
-            useNativeDriver: true,
-          }).start();
+          // 천천히 드래그: 가장 가까운 스냅 포인트로
+          targetHeight = snapPoints.reduce((prev, curr) => {
+            return Math.abs(curr - currentVisibleHeight) < Math.abs(prev - currentVisibleHeight) ? curr : prev;
+          });
         }
+
+        // 스냅 애니메이션 - 더 부드러운 스프링 효과
+        sheetHeight.current = targetHeight;
+        const targetTranslateY = MAX_SHEET_HEIGHT - targetHeight;
+        Animated.spring(panY, {
+          toValue: targetTranslateY,
+          velocity: gestureState.vy,  // 드래그 속도를 애니메이션에 반영
+          tension: 68,  // 80 → 68 (더 부드럽게)
+          friction: 14, // 12 → 14 (바운스 감소)
+          useNativeDriver: true,
+        }).start();
       },
     })
   ).current;
@@ -126,11 +175,36 @@ export default function RouteHazardBriefing({ route, isVisible, onClose }) {
     return '안전';
   };
 
+  const handleHazardPress = (hazard) => {
+    // 1. 경로 위험 정보 모달 닫기
+    closeHazardBriefing();
+
+    // 2. 재오픈 플래그 설정
+    setShouldReopenBriefing(true);
+
+    // 3. 지도 화면으로 이동 (이미 지도 화면이면 유지)
+    navigation.navigate('MapStack', { screen: 'MapMain' });
+
+    // 4. 위험 위치 정보로 PlaceSheet 열기
+    openPlaceSheet({
+      id: hazard.id,
+      name: getHazardTypeLabel(hazard.hazard_type),
+      address: hazard.description || '',
+      latitude: hazard.latitude,
+      longitude: hazard.longitude,
+      category: 'danger',
+      description: hazard.description,
+      risk_score: hazard.risk_score,
+      hazard_type: hazard.hazard_type,
+      type: 'hazard',
+    });
+  };
+
   if (!isVisible || !route) return null;
 
   const translateY = panY.interpolate({
-    inputRange: [-(MAX_SHEET_HEIGHT - MIN_SHEET_HEIGHT), 0],
-    outputRange: [-(MAX_SHEET_HEIGHT - MIN_SHEET_HEIGHT), 0],
+    inputRange: [0, MAX_SHEET_HEIGHT - MIN_SHEET_HEIGHT],
+    outputRange: [0, MAX_SHEET_HEIGHT - MIN_SHEET_HEIGHT],
     extrapolate: 'clamp',
   });
 
@@ -140,18 +214,17 @@ export default function RouteHazardBriefing({ route, isVisible, onClose }) {
         style={[
           styles.sheet,
           {
+            height: MAX_SHEET_HEIGHT, // 전체 높이
             paddingBottom: insets.bottom,
             transform: [{ translateY }],
-            maxHeight: MAX_SHEET_HEIGHT,
           },
         ]}
-        {...panResponder.panHandlers}
       >
-        <View style={styles.handleContainer}>
+        <View style={styles.handleContainer} {...panResponder.panHandlers}>
           <View style={styles.handle} />
         </View>
-        
-        <View style={styles.header}>
+
+        <View style={styles.header} {...panResponder.panHandlers}>
             <Text style={styles.title}>경로 위험 정보</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <Text style={styles.closeButtonText}>✕</Text>
@@ -168,7 +241,10 @@ export default function RouteHazardBriefing({ route, isVisible, onClose }) {
               <Text style={styles.errorText}>{error}</Text>
             </View>
           ) : hazards ? (
-            <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+            <ScrollView
+              style={styles.content}
+              showsVerticalScrollIndicator={false}
+            >
               {/* 요약 정보 */}
               <View style={styles.summaryCard}>
                 <Text style={styles.summaryTitle}>📊 요약</Text>
@@ -210,7 +286,12 @@ export default function RouteHazardBriefing({ route, isVisible, onClose }) {
                 <View style={styles.section}>
                   <Text style={styles.sectionTitle}>📍 상세 위치</Text>
                   {hazards.hazards.map((hazard, index) => (
-                    <View key={index} style={styles.hazardCard}>
+                    <TouchableOpacity
+                      key={index}
+                      style={styles.hazardCard}
+                      onPress={() => handleHazardPress(hazard)}
+                      activeOpacity={0.7}
+                    >
                       <View style={styles.hazardHeader}>
                         <Text style={styles.hazardType}>
                           {getHazardTypeLabel(hazard.hazard_type)}
@@ -235,7 +316,7 @@ export default function RouteHazardBriefing({ route, isVisible, onClose }) {
                       <Text style={styles.hazardDistance}>
                         경로로부터 {hazard.distance_from_route?.toFixed(0) || 0}m
                       </Text>
-                    </View>
+                    </TouchableOpacity>
                   ))}
                 </View>
               )}
@@ -268,7 +349,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surfaceElevated,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    minHeight: MIN_SHEET_HEIGHT,
     // 그림자 강화 (shadowLarge 적용)
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: -4 },
@@ -277,14 +357,16 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   handleContainer: {
-    paddingVertical: Spacing.sm,
+    paddingVertical: Spacing.md,
     alignItems: 'center',
+    cursor: 'grab',
   },
   handle: {
-    width: 40,
-    height: 4,
-    backgroundColor: Colors.border,
-    borderRadius: 2,
+    width: 48,
+    height: 5,
+    backgroundColor: Colors.textTertiary,
+    borderRadius: 3,
+    opacity: 0.5,
   },
   header: {
     flexDirection: 'row',
@@ -327,6 +409,7 @@ const styles = StyleSheet.create({
     color: Colors.error,
   },
   content: {
+    flex: 1,
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.lg,  // md → lg (여백 증가)
   },

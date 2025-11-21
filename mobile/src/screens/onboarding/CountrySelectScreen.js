@@ -12,6 +12,7 @@ import {
   ScrollView,
   TextInput,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Typography, Spacing } from '../../styles';
 import { useOnboarding } from '../../contexts/OnboardingContext';
 import { COUNTRIES } from '../../constants/countries';
@@ -46,7 +47,17 @@ export default function CountrySelectScreen({ navigation }) {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+      <View style={styles.container}>
+        {/* 뒤로가기 버튼 */}
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
+        >
+          <Icon name="arrowBack" size={24} color={Colors.textPrimary} />
+        </TouchableOpacity>
+
       {/* 헤더 */}
       <View style={styles.header}>
         <Text style={styles.title}>활동 국가를 선택해주세요</Text>
@@ -141,18 +152,29 @@ export default function CountrySelectScreen({ navigation }) {
           <Icon name="arrowForward" size={20} color={Colors.textInverse} />
         </TouchableOpacity>
       </View>
-    </View>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
     backgroundColor: Colors.background,
   },
+  container: {
+    flex: 1,
+  },
+  backButton: {
+    position: 'absolute',
+    top: Spacing.md,
+    left: Spacing.lg,
+    zIndex: 10,
+    padding: Spacing.sm,
+  },
   header: {
     paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing.xxxl,
+    paddingTop: Spacing.xxxl + Spacing.xl,
     paddingBottom: Spacing.lg,
   },
   title: {

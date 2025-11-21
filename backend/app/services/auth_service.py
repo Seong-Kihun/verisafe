@@ -134,3 +134,38 @@ async def get_current_active_user(current_user: User = Depends(get_current_user)
     #     raise HTTPException(status_code=400, detail="비활성 사용자")
     return current_user
 
+
+async def get_current_user_optional(
+    token: Optional[str] = Depends(OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False))
+) -> Optional[User]:
+    """
+    JWT 토큰으로부터 현재 사용자 추출 (Optional - 인증 실패 시 None 반환)
+
+    익명 제보 등 인증이 선택적인 경우 사용
+
+    Args:
+        token: JWT access token (없을 수 있음)
+
+    Returns:
+        User 객체 또는 None
+    """
+    if not token:
+        return None
+
+    try:
+        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+        username: str = payload.get("sub")
+        if username is None:
+            return None
+    except JWTError:
+        return None
+
+    # DB에서 사용자 조회
+    from app.database import SessionLocal
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.username == username).first()
+        return user
+    finally:
+        db.close()
+

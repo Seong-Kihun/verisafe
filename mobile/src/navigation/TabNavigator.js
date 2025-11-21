@@ -30,9 +30,14 @@ export default function TabNavigator() {
           backgroundColor: Colors.surface,
           borderTopColor: Colors.border,
           borderTopWidth: 1,
-          paddingBottom: 8,
+          paddingBottom: 20, // 아이콘과 하단 간격
           paddingTop: 8,
-          height: 60,
+          height: 70, // 높이 증가
+          elevation: 8, // Android 그림자
+          shadowColor: '#000', // iOS 그림자
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 8,
         },
         tabBarLabelStyle: {
           fontSize: 12,

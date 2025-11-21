@@ -305,8 +305,9 @@ async def reverse_geocode(
 ):
     """좌표로 역지오코딩 (OpenStreetMap Nominatim API)"""
     import time
+    import uuid
     start_time = time.time()
-    
+
     try:
         logger.info(f"역지오코딩 요청: lat={lat}, lng={lng}")
 
@@ -377,7 +378,7 @@ async def reverse_geocode(
                 logger.info(f"역지오코딩 완료: {name}, 소요시간: {total_time:.3f}초")
 
                 return LandmarkResponse(
-                    id=f"reverse_{lat}_{lng}",
+                    id=uuid.uuid5(uuid.NAMESPACE_DNS, f"reverse_{lat}_{lng}"),
                     name=name,
                     category=category,
                     latitude=lat,
@@ -388,20 +389,56 @@ async def reverse_geocode(
             except httpx.TimeoutException:
                 api_time = time.time() - api_start
                 logger.error(f"Nominatim reverse 타임아웃 (소요시간: {api_time:.3f}초)")
-                raise HTTPException(status_code=504, detail="Reverse geocoding timeout")
+                # 타임아웃 시 fallback으로 처리
+                total_time = time.time() - start_time
+                logger.info(f"타임아웃 fallback: 기본 위치 정보 반환 (소요시간: {total_time:.3f}초)")
+                return LandmarkResponse(
+                    id=uuid.uuid5(uuid.NAMESPACE_DNS, f"reverse_{lat}_{lng}"),
+                    name="선택한 위치",
+                    category="other",
+                    latitude=lat,
+                    longitude=lng,
+                    description=f"{lat:.4f}, {lng:.4f}"
+                )
             except httpx.HTTPStatusError as e:
                 api_time = time.time() - api_start
                 logger.error(f"Nominatim reverse HTTP 오류 (소요시간: {api_time:.3f}초): {e.response.status_code}")
-                raise HTTPException(status_code=e.response.status_code, detail="Reverse geocoding failed")
+                # HTTP 오류 시 fallback으로 처리
+                total_time = time.time() - start_time
+                logger.info(f"HTTP 오류 fallback: 기본 위치 정보 반환 (소요시간: {total_time:.3f}초)")
+                return LandmarkResponse(
+                    id=uuid.uuid5(uuid.NAMESPACE_DNS, f"reverse_{lat}_{lng}"),
+                    name="선택한 위치",
+                    category="other",
+                    latitude=lat,
+                    longitude=lng,
+                    description=f"{lat:.4f}, {lng:.4f}"
+                )
 
     except httpx.HTTPError as e:
         total_time = time.time() - start_time
         logger.error(f"Nominatim reverse API 호출 실패 (소요시간: {total_time:.3f}초): {e}")
-        raise HTTPException(status_code=500, detail="Failed to reverse geocode")
+        # API 실패 시 기본 응답 반환 (좌표만 표시)
+        return LandmarkResponse(
+            id=uuid.uuid5(uuid.NAMESPACE_DNS, f"reverse_{lat}_{lng}"),
+            name="선택한 위치",
+            category="other",
+            latitude=lat,
+            longitude=lng,
+            description=f"{lat:.4f}, {lng:.4f}"
+        )
     except Exception as e:
         total_time = time.time() - start_time
         logger.error(f"역지오코딩 오류 (소요시간: {total_time:.3f}초): {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Internal server error")
+        # 일반 오류 시에도 기본 응답 반환
+        return LandmarkResponse(
+            id=uuid.uuid5(uuid.NAMESPACE_DNS, f"reverse_{lat}_{lng}"),
+            name="선택한 위치",
+            category="other",
+            latitude=lat,
+            longitude=lng,
+            description=f"{lat:.4f}, {lng:.4f}"
+        )
 
 
 @router.get("/places/detail", response_model=LandmarkResponse)

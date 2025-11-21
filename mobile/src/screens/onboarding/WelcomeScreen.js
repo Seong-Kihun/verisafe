@@ -11,6 +11,7 @@ import {
   Image,
   ScrollView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Typography, Spacing } from '../../styles';
 import Icon from '../../components/icons/Icon';
 
@@ -20,11 +21,12 @@ export default function WelcomeScreen({ navigation }) {
   };
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
-    >
+    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
       {/* 로고/아이콘 영역 */}
       <View style={styles.logoContainer}>
         <View style={styles.logoCircle}>
@@ -72,7 +74,8 @@ export default function WelcomeScreen({ navigation }) {
       <Text style={styles.footerText}>
         KOICA와 함께하는 안전한 여정
       </Text>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -90,14 +93,17 @@ const Feature = ({ icon, title, description }) => (
 );
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
     backgroundColor: Colors.background,
+  },
+  container: {
+    flex: 1,
   },
   content: {
     flexGrow: 1,
     paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing.xxxl,
+    paddingTop: Spacing.xxxl + Spacing.xl,
     paddingBottom: Spacing.xl,
   },
   logoContainer: {
@@ -123,11 +129,11 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   featuresContainer: {
-    marginBottom: Spacing.xxxl,
+    marginBottom: Spacing.xl,
   },
   featureItem: {
     flexDirection: 'row',
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
     alignItems: 'flex-start',
   },
   featureIconContainer: {

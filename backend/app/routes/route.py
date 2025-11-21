@@ -1,5 +1,5 @@
 """경로 계산 API (캐싱 적용)"""
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from typing import List
 import math
@@ -19,6 +19,7 @@ from app.database import get_db, SessionLocal
 from app.models.hazard import Hazard
 from app.utils.geo import haversine_distance
 from app.utils.logger import get_logger
+from app.middleware.rate_limiter import limiter
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -26,22 +27,29 @@ logger = get_logger(__name__)
 # 허용된 위험 유형 목록 (유효성 검증용)
 ALLOWED_HAZARD_TYPES = {
     'armed_conflict',
-    'natural_disaster',
-    'road_damage',
     'protest_riot',
     'checkpoint',
-    'other',
-    'safe_haven',
-    'conflict',
-    'protest',
+    'road_damage',
+    'natural_disaster',
     'flood',
-    'landslide'
+    'landslide',
+    'safe_haven',
+    'other'
 }
 
-# GraphManager 및 RouteCalculator 인스턴스
-graph_manager = GraphManager()
-route_calculator = RouteCalculator(graph_manager)
-hazard_scorer = HazardScorer(graph_manager, session_factory=SessionLocal)
+# GraphManager 및 RouteCalculator는 요청 시점에 생성
+# 모듈 레벨에서 생성하면 초기화 전의 빈 그래프를 참조할 수 있음
+def get_graph_manager():
+    """GraphManager Singleton 인스턴스 반환"""
+    return GraphManager()
+
+def get_route_calculator():
+    """RouteCalculator 인스턴스 반환 (최신 GraphManager 사용)"""
+    return RouteCalculator(get_graph_manager())
+
+def get_hazard_scorer():
+    """HazardScorer 인스턴스 반환"""
+    return HazardScorer(get_graph_manager(), session_factory=SessionLocal)
 
 
 def generate_cache_key(request: RouteRequest) -> str:
@@ -64,15 +72,108 @@ def generate_cache_key(request: RouteRequest) -> str:
     return f"route:{key_hash}"
 
 
-@router.post("/calculate", response_model=CalculateRouteResponse)
-async def calculate_route(request: RouteRequest, db: Session = Depends(get_db)):
+def calculate_route_hazards_count(db: Session, polyline: List[List[float]]) -> int:
     """
-    경로 계산 API (Redis 캐싱 적용)
+    경로 근방 위험 정보 개수 계산
+
+    Args:
+        db: 데이터베이스 세션
+        polyline: 경로 좌표 배열 [[lat, lng], ...]
+
+    Returns:
+        경로 근방 100m 내 위험 정보 개수
+    """
+    if not polyline or len(polyline) < 2:
+        return 0
+
+    from datetime import datetime
+    from sqlalchemy import text
+
+    hazard_distance_threshold = 100  # 100m
+    now = datetime.utcnow()
+
+    try:
+        # PostGIS를 사용한 공간 쿼리
+        linestring_coords = ", ".join([f"{lng} {lat}" for lat, lng in polyline])
+        linestring_wkt = f"LINESTRING({linestring_coords})"
+
+        query = text("""
+            SELECT COUNT(DISTINCT id)
+            FROM hazards
+            WHERE
+                start_date <= :now
+                AND (end_date >= :now OR end_date IS NULL)
+                AND ST_DWithin(
+                    geography(geometry),
+                    geography(ST_GeomFromText(:linestring, 4326)),
+                    radius * 1000 + :threshold
+                )
+                AND (
+                    ST_Distance(
+                        geography(geometry),
+                        geography(ST_GeomFromText(:linestring, 4326))
+                    ) - (radius * 1000)
+                ) <= :threshold
+        """)
+
+        result = db.execute(query, {
+            "linestring": linestring_wkt,
+            "now": now,
+            "threshold": hazard_distance_threshold
+        })
+
+        count = result.scalar() or 0
+        return int(count)
+
+    except Exception as e:
+        # PostGIS 쿼리 실패 시 fallback: Python 기반 계산
+        logger.warning(f"PostGIS hazard count query failed, using fallback: {e}")
+
+        all_hazards = db.query(Hazard).filter(
+            Hazard.start_date <= now,
+            (Hazard.end_date >= now) | (Hazard.end_date.is_(None))
+        ).all()
+
+        count = 0
+        for hazard in all_hazards:
+            hazard_point = (hazard.latitude, hazard.longitude)
+            min_distance = float('inf')
+
+            for i in range(len(polyline) - 1):
+                line_start = tuple(polyline[i])
+                line_end = tuple(polyline[i + 1])
+
+                # utils.geo의 point_to_line_distance는 km 단위 반환
+                distance = haversine_distance(
+                    hazard_point[0], hazard_point[1],
+                    line_start[0], line_start[1]
+                ) * 1000  # m으로 변환
+                min_distance = min(min_distance, distance)
+
+            hazard_radius_meters = hazard.radius * 1000
+            effective_distance = max(0, min_distance - hazard_radius_meters)
+
+            if effective_distance <= hazard_distance_threshold:
+                count += 1
+
+        return count
+
+
+@router.post("/calculate", response_model=CalculateRouteResponse)
+@limiter.limit("20/minute")  # 1분에 20회 경로 계산으로 제한
+async def calculate_route(
+    http_request: Request,
+    request: RouteRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    경로 계산 API (Redis 캐싱 적용, 속도 제한 20/분)
 
     1. 캐시 확인 → 있으면 즉시 반환
     2. 없으면 계산 → 캐시에 저장 → 반환
 
     Args:
+        http_request: HTTP Request 객체 (속도 제한용)
         request: 경로 계산 요청 (출발지, 목적지, 선호도, 이동 수단, 제외할 위험 유형)
         db: 데이터베이스 세션
 
@@ -82,6 +183,7 @@ async def calculate_route(request: RouteRequest, db: Session = Depends(get_db)):
     Raises:
         HTTPException: 400 - 잘못된 요청 (좌표 범위 오류 등)
         HTTPException: 404 - 경로를 찾을 수 없음
+        HTTPException: 429 - 속도 제한 초과
         HTTPException: 500 - 서버 내부 오류
     """
     start_time = time.time()
@@ -112,6 +214,10 @@ async def calculate_route(request: RouteRequest, db: Session = Depends(get_db)):
     logger.info(f"캐시 미스. 경로 계산 시작...")
 
     try:
+        # 요청 시점에 GraphManager, RouteCalculator, HazardScorer 가져오기
+        _hazard_scorer = get_hazard_scorer()
+        _route_calculator = get_route_calculator()
+
         # 경로 계산 전에 위험도 업데이트 (최신 위험 정보 반영)
         # 제외할 위험 유형을 전달하여 필터링된 위험도 계산
         try:
@@ -123,7 +229,7 @@ async def calculate_route(request: RouteRequest, db: Session = Depends(get_db)):
                 if invalid_types:
                     logger.warning(f"잘못된 위험 유형 무시됨: {invalid_types}")
 
-            await hazard_scorer.update_all_risk_scores(excluded_hazard_types=excluded_types)
+            await _hazard_scorer.update_all_risk_scores(excluded_hazard_types=excluded_types)
             if excluded_types:
                 logger.info(f"위험도 업데이트 완료 (제외된 유형: {excluded_types}), 경로 계산 시작")
             else:
@@ -132,7 +238,7 @@ async def calculate_route(request: RouteRequest, db: Session = Depends(get_db)):
             logger.warning(f"경고: 위험도 업데이트 실패 (경로 계산은 계속 진행): {e}")
 
         # A* 알고리즘으로 경로 계산 (최대 10개 경로)
-        result = route_calculator.calculate_route(
+        result = _route_calculator.calculate_route(
             start=(request.start.lat, request.start.lng),
             end=(request.end.lat, request.end.lng),
             preference=request.preference,
@@ -157,6 +263,12 @@ async def calculate_route(request: RouteRequest, db: Session = Depends(get_db)):
         routes = []
         if 'routes' in result and len(result['routes']) > 0:
             for route_data in result['routes']:
+                # 각 경로에 대해 위험 정보 개수 계산
+                hazard_count = calculate_route_hazards_count(
+                    db=db,
+                    polyline=route_data.get('polyline', [])
+                )
+
                 routes.append(RouteResponse(
                     id=route_data.get('id', 'unknown'),
                     type=route_data.get('type', 'unknown'),
@@ -165,6 +277,7 @@ async def calculate_route(request: RouteRequest, db: Session = Depends(get_db)):
                     duration=route_data.get('duration', 0),
                     duration_seconds=route_data.get('duration_seconds', 0),
                     risk_score=route_data.get('risk_score', 0),
+                    hazard_count=hazard_count,  # 위험 정보 개수 추가
                     transportation_mode=route_data.get('transportation_mode', 'car'),
                     waypoints=route_data.get('waypoints', []),
                     polyline=route_data.get('polyline', [])
@@ -226,7 +339,9 @@ async def get_cache_stats():
 
 
 @router.get("/{route_id}/hazards", response_model=RouteHazardBriefing)
+@limiter.limit("30/minute")  # 1분에 30회 조회로 제한
 async def get_route_hazards(
+    http_request: Request,
     route_id: str,
     polyline: str,  # JSON string of [[lat, lng], ...]
     db: Session = Depends(get_db)

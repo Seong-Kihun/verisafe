@@ -10,7 +10,8 @@ import {
   TouchableOpacity,
   ScrollView,
 } from 'react-native';
-import { useTranslation } from 'react-i18next';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import i18n from '../../i18n';
 import { Colors, Typography, Spacing } from '../../styles';
 import { useOnboarding } from '../../contexts/OnboardingContext';
 import Icon from '../../components/icons/Icon';
@@ -25,7 +26,6 @@ const LANGUAGES = [
 ];
 
 export default function LanguageSelectScreen({ navigation }) {
-  const { t, i18n } = useTranslation();
   const { onboardingData, updateOnboardingData } = useOnboarding();
   const [selectedLanguage, setSelectedLanguage] = useState(onboardingData.language || 'ko');
 
@@ -45,78 +45,99 @@ export default function LanguageSelectScreen({ navigation }) {
   };
 
   return (
-    <View style={styles.container}>
-      {/* 헤더 */}
-      <View style={styles.header}>
-        <Text style={styles.title}>언어를 선택해주세요</Text>
-        <Text style={styles.subtitle}>
-          VeriSafe를 사용할 언어를 선택하세요
-        </Text>
-      </View>
-
-      {/* 언어 목록 */}
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {LANGUAGES.map((lang) => (
-          <TouchableOpacity
-            key={lang.code}
-            style={[
-              styles.languageOption,
-              selectedLanguage === lang.code && styles.languageOptionSelected,
-            ]}
-            onPress={() => handleSelectLanguage(lang.code)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.languageFlag}>{lang.flag}</Text>
-            <Text style={[
-              styles.languageName,
-              selectedLanguage === lang.code && styles.languageNameSelected,
-            ]}>
-              {lang.name}
-            </Text>
-            {selectedLanguage === lang.code && (
-              <View style={styles.checkIcon}>
-                <Icon name="check" size={24} color={Colors.primary} />
-              </View>
-            )}
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      {/* 하단 버튼 */}
-      <View style={styles.footer}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+      <View style={styles.container}>
+        {/* 뒤로가기 버튼 */}
         <TouchableOpacity
-          style={styles.skipButton}
-          onPress={handleSkip}
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
           activeOpacity={0.7}
         >
-          <Text style={styles.skipButtonText}>건너뛰기</Text>
+          <Icon name="arrowBack" size={24} color={Colors.textPrimary} />
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.nextButton}
-          onPress={handleNext}
-          activeOpacity={0.8}
+        {/* 헤더 */}
+        <View style={styles.header}>
+          <Text style={styles.title}>언어를 선택해주세요</Text>
+          <Text style={styles.subtitle}>
+            VeriSafe를 사용할 언어를 선택하세요
+          </Text>
+        </View>
+
+        {/* 언어 목록 */}
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.nextButtonText}>다음</Text>
-          <Icon name="arrowForward" size={20} color={Colors.textInverse} />
-        </TouchableOpacity>
+          {LANGUAGES.map((lang) => (
+            <TouchableOpacity
+              key={lang.code}
+              style={[
+                styles.languageOption,
+                selectedLanguage === lang.code && styles.languageOptionSelected,
+              ]}
+              onPress={() => handleSelectLanguage(lang.code)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.languageFlag}>{lang.flag}</Text>
+              <Text style={[
+                styles.languageName,
+                selectedLanguage === lang.code && styles.languageNameSelected,
+              ]}>
+                {lang.name}
+              </Text>
+              {selectedLanguage === lang.code && (
+                <View style={styles.checkIcon}>
+                  <Icon name="check" size={24} color={Colors.primary} />
+                </View>
+              )}
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        {/* 하단 버튼 */}
+        <View style={styles.footer}>
+          <TouchableOpacity
+            style={styles.skipButton}
+            onPress={handleSkip}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.skipButtonText}>건너뛰기</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.nextButton}
+            onPress={handleNext}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.nextButtonText}>다음</Text>
+            <Icon name="arrowForward" size={20} color={Colors.textInverse} />
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
     backgroundColor: Colors.background,
   },
+  container: {
+    flex: 1,
+  },
+  backButton: {
+    position: 'absolute',
+    top: Spacing.md,
+    left: Spacing.lg,
+    zIndex: 10,
+    padding: Spacing.sm,
+  },
   header: {
     paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing.xxxl,
+    paddingTop: Spacing.xxxl + Spacing.xl,
     paddingBottom: Spacing.xl,
   },
   title: {

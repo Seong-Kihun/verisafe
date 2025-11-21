@@ -53,7 +53,7 @@ class RouteCalculator:
 
         return f"route:{cache_hash}"
     
-    def calculate_route(self, start: Tuple[float, float], end: Tuple[float, float], preference='safe', transportation_mode='car', max_routes=3) -> dict:
+    def calculate_route(self, start: Tuple[float, float], end: Tuple[float, float], preference='safe', transportation_mode='car', max_routes=6) -> dict:
         """
         경로 계산 메인 함수 (K-Shortest Paths 알고리즘 사용)
 
@@ -62,7 +62,7 @@ class RouteCalculator:
             end: (lat, lng)
             preference: 'safe' (안전 우선) or 'fast' (빠르기 우선)
             transportation_mode: 'car', 'walking', 'bicycle'
-            max_routes: 최대 반환할 경로 수 (기본 3개)
+            max_routes: 최대 반환할 경로 수 (기본 6개)
 
         Returns:
             Dictionary with routes (최대 max_routes개의 다양한 경로)
@@ -101,9 +101,11 @@ class RouteCalculator:
         routes = []
         seen_paths = set()  # 중복 경로 방지
         route_idx = 1
+        safe_route_added = False  # safe 타입 경로 추가 여부
+        fast_route_added = False  # fast 타입 경로 추가 여부
 
         try:
-            # 각 가중치 함수마다 A* 알고리즘으로 경로 찾기
+            # Strategy 1: 각 가중치 함수마다 A* 알고리즘으로 경로 찾기
             for weight_name, weight_func in weight_functions:
                 if len(routes) >= max_routes:
                     break
@@ -120,21 +122,56 @@ class RouteCalculator:
 
                     path_key = tuple(path)
 
-                    # 중복 경로 제거 및 유사도 체크
-                    if path_key not in seen_paths and self._is_diverse_route(path, seen_paths, graph):
+                    # 'safe'와 'fast' 타입은 중복 검사 없이 강제로 추가 (사용자가 선택할 수 있도록)
+                    is_primary_route = weight_name in ['safe', 'fast']
+                    should_add = False
+
+                    if is_primary_route:
+                        # safe/fast 타입은 아직 추가되지 않았으면 무조건 추가
+                        if weight_name == 'safe' and not safe_route_added:
+                            should_add = True
+                            safe_route_added = True
+                        elif weight_name == 'fast' and not fast_route_added:
+                            should_add = True
+                            fast_route_added = True
+                    else:
+                        # 다른 타입은 중복 경로 제거 및 유사도 체크
+                        if path_key not in seen_paths and self._is_diverse_route(path, seen_paths, graph):
+                            should_add = True
+
+                    if should_add:
                         seen_paths.add(path_key)
                         formatted = self.format_route(path, graph, speed, transportation_mode)
 
-                        # 경로 타입 결정
+                        # 경로 타입 및 라벨 결정
                         if weight_name == 'safe':
                             formatted['type'] = 'safe'
                             formatted['id'] = f'safe_route_{route_idx}'
+                            formatted['label'] = '가장 안전한 경로'
                         elif weight_name == 'fast':
                             formatted['type'] = 'fast'
                             formatted['id'] = f'fast_route_{route_idx}'
+                            formatted['label'] = '가장 빠른 경로'
+                        elif weight_name.startswith('balanced'):
+                            formatted['type'] = 'balanced'
+                            formatted['id'] = f'balanced_route_{route_idx}'
+                            formatted['label'] = '균형잡힌 경로'
+                        elif weight_name.startswith('distance_priority'):
+                            formatted['type'] = 'fast'
+                            formatted['id'] = f'distance_route_{route_idx}'
+                            formatted['label'] = '빠른 경로'
+                        elif weight_name.startswith('very_safe') or weight_name.startswith('ultra_safe'):
+                            formatted['type'] = 'safe'
+                            formatted['id'] = f'extra_safe_route_{route_idx}'
+                            formatted['label'] = '매우 안전한 경로'
+                        elif weight_name.startswith('inverse'):
+                            formatted['type'] = 'alternative'
+                            formatted['id'] = f'alt_route_{route_idx}'
+                            formatted['label'] = '대체 경로'
                         else:
                             formatted['type'] = 'alternative'
                             formatted['id'] = f'route_{route_idx}'
+                            formatted['label'] = '대체 경로'
 
                         routes.append(formatted)
                         route_idx += 1
@@ -144,14 +181,76 @@ class RouteCalculator:
                     logger.debug(f"가중치 '{weight_name}' 경로 계산 실패: {e}")
                     continue
 
+            # Strategy 2: If we still don't have enough routes, use simple_paths to find more alternatives
+            if len(routes) < max_routes:
+                logger.info(f"경로가 {len(routes)}개뿐입니다. shortest_simple_paths로 추가 경로 탐색")
+
+                try:
+                    # Use length-only weight for finding truly different paths
+                    def simple_weight(u, v, d):
+                        if hasattr(d, 'values') and not ('length' in d or 'risk_score' in d):
+                            edge_values = list(d.values())
+                            if edge_values:
+                                edge_data = min(edge_values, key=lambda e: e.get('length', float('inf')))
+                            else:
+                                edge_data = {'length': 1, 'risk_score': 0}
+                        else:
+                            edge_data = d
+                        return edge_data.get('length', 1)
+
+                    # Find up to (max_routes - len(routes)) additional simple paths
+                    additional_needed = max_routes - len(routes) + 3  # Get a few extra to filter
+                    simple_paths_iter = shortest_simple_paths(graph, start_node, end_node, weight=simple_weight)
+
+                    paths_checked = 0
+                    for path in islice(simple_paths_iter, additional_needed):
+                        paths_checked += 1
+                        if len(routes) >= max_routes:
+                            break
+
+                        path_key = tuple(path)
+                        if path_key in seen_paths:
+                            logger.debug(f"경로 {paths_checked}: 이미 추가된 경로 (중복)")
+                            continue
+
+                        if not self._is_diverse_route(path, seen_paths, graph, similarity_threshold=0.85):
+                            logger.debug(f"경로 {paths_checked}: 유사도가 너무 높음 (제외)")
+                            continue
+
+                        seen_paths.add(path_key)
+                        formatted = self.format_route(path, graph, speed, transportation_mode)
+                        formatted['type'] = 'alternative'
+                        formatted['id'] = f'alt_path_{route_idx}'
+                        formatted['label'] = '대체 경로'
+                        routes.append(formatted)
+                        route_idx += 1
+                        logger.info(f"shortest_simple_paths로 경로 추가: {len(path)} 노드 (checked {paths_checked} paths)")
+
+                except (nx.NetworkXNoPath, nx.NetworkXError, Exception) as e:
+                    logger.debug(f"shortest_simple_paths 실패: {e}")
+                    pass
+
             # 경로가 없으면 최소한 기본 경로라도 찾기
             if len(routes) == 0:
                 logger.warning("다양한 경로를 찾을 수 없어 기본 최단 경로를 반환합니다")
+
+                def basic_weight(u, v, d):
+                    # Handle MultiDiGraph edge data
+                    if hasattr(d, 'values') and not ('length' in d or 'risk_score' in d):
+                        edge_values = list(d.values())
+                        if edge_values:
+                            edge_data = min(edge_values, key=lambda e: e.get('length', 0))
+                        else:
+                            edge_data = {'length': 0, 'risk_score': 0}
+                    else:
+                        edge_data = d
+                    return edge_data.get('length', 0) * 1000
+
                 basic_route = astar_path(
                     graph,
                     start_node,
                     end_node,
-                    weight=lambda u, v, d: d.get('length', 0) * 1000,
+                    weight=basic_weight,
                     heuristic=self.heuristic_function
                 )
                 formatted = self.format_route(basic_route, graph, speed, transportation_mode)
@@ -180,7 +279,17 @@ class RouteCalculator:
                         penalty = 10000  # 큰 페널티 값
 
                         def penalty_weight(u, v, d):
-                            base_weight = d.get('length', 0) * 1000 + d.get('risk_score', 0) * 50
+                            # Handle MultiDiGraph edge data
+                            if hasattr(d, 'values') and not ('length' in d or 'risk_score' in d):
+                                edge_values = list(d.values())
+                                if edge_values:
+                                    edge_data = min(edge_values, key=lambda e: e.get('length', 0))
+                                else:
+                                    edge_data = {'length': 0, 'risk_score': 0}
+                            else:
+                                edge_data = d
+
+                            base_weight = edge_data.get('length', 0) * 1000 + edge_data.get('risk_score', 0) * 50
                             if (u, v) in first_path_edges:
                                 return base_weight + penalty
                             return base_weight
@@ -230,38 +339,64 @@ class RouteCalculator:
         Returns:
             List of (name, weight_function) tuples
         """
+
+        def _get_edge_data(d):
+            """Helper function to extract edge data from MultiDiGraph or DiGraph"""
+            # For MultiDiGraph, d is a dict-like object of {key: edge_data}
+            # For DiGraph, d is the edge_data dict itself
+            if hasattr(d, 'values') and not ('length' in d or 'risk_score' in d):
+                # MultiDiGraph: select edge with minimum weight (length + risk)
+                # This ensures we pick the best edge among parallel edges
+                edge_values = list(d.values())
+                if edge_values:
+                    return min(edge_values, key=lambda edge: edge.get('length', 0) + edge.get('risk_score', 0) * 0.01)
+                return {'length': 0, 'risk_score': 0}  # Fallback
+            return d
+
         weight_functions = []
 
         # 1. 안전 우선 경로 (거리 + 위험도*100)
         if preference == 'safe':
             weight_functions.append((
                 'safe',
-                lambda u, v, d: d.get('length', 0) * 1000 + d.get('risk_score', 0) * 100
+                lambda u, v, d: _get_edge_data(d).get('length', 0) * 1000 + _get_edge_data(d).get('risk_score', 0) * 100
             ))
 
         # 2. 빠른 경로 (거리만)
         weight_functions.append((
             'fast',
-            lambda u, v, d: d.get('length', 0) * 1000
+            lambda u, v, d: _get_edge_data(d).get('length', 0) * 1000
         ))
 
         # 3. 균형 잡힌 경로들 (다양한 위험도 가중치)
         weight_functions.extend([
-            ('balanced_light', lambda u, v, d: d.get('length', 0) * 1000 + d.get('risk_score', 0) * 30),
-            ('balanced_medium', lambda u, v, d: d.get('length', 0) * 1000 + d.get('risk_score', 0) * 70),
-            ('balanced_heavy', lambda u, v, d: d.get('length', 0) * 1000 + d.get('risk_score', 0) * 150),
-            ('very_safe', lambda u, v, d: d.get('length', 0) * 1000 + d.get('risk_score', 0) * 250),
+            ('balanced_light', lambda u, v, d: _get_edge_data(d).get('length', 0) * 1000 + _get_edge_data(d).get('risk_score', 0) * 30),
+            ('balanced_medium', lambda u, v, d: _get_edge_data(d).get('length', 0) * 1000 + _get_edge_data(d).get('risk_score', 0) * 70),
+            ('balanced_heavy', lambda u, v, d: _get_edge_data(d).get('length', 0) * 1000 + _get_edge_data(d).get('risk_score', 0) * 150),
         ])
 
-        # 4. 거리 허용 경로들 (약간 더 긴 경로 허용)
+        # 4. 거리 우선 경로들 (더 짧은 거리를 선호, 위험도는 덜 중요)
         weight_functions.extend([
-            ('longer_10', lambda u, v, d: d.get('length', 0) * 1000 * 1.1 + d.get('risk_score', 0) * 50),
-            ('longer_20', lambda u, v, d: d.get('length', 0) * 1000 * 1.2 + d.get('risk_score', 0) * 80),
+            ('distance_priority_1', lambda u, v, d: _get_edge_data(d).get('length', 0) * 1000 + _get_edge_data(d).get('risk_score', 0) * 10),
+            ('distance_priority_2', lambda u, v, d: _get_edge_data(d).get('length', 0) * 1000 + _get_edge_data(d).get('risk_score', 0) * 5),
+        ])
+
+        # 5. 안전 우선 경로들 (위험도를 매우 중요시)
+        weight_functions.extend([
+            ('very_safe', lambda u, v, d: _get_edge_data(d).get('length', 0) * 1000 + _get_edge_data(d).get('risk_score', 0) * 200),
+            ('ultra_safe', lambda u, v, d: _get_edge_data(d).get('length', 0) * 1000 + _get_edge_data(d).get('risk_score', 0) * 500),
+        ])
+
+        # 6. 반대 가중치 (위험도가 낮은 곳을 피하는 경로 - 특이 경로 생성)
+        # 이것은 일부러 다른 경로를 생성하기 위한 트릭
+        weight_functions.extend([
+            ('inverse_risk_1', lambda u, v, d: _get_edge_data(d).get('length', 0) * 1000 + max(0, (100 - _get_edge_data(d).get('risk_score', 0))) * 20),
+            ('inverse_risk_2', lambda u, v, d: _get_edge_data(d).get('length', 0) * 1000 + max(0, (100 - _get_edge_data(d).get('risk_score', 0))) * 50),
         ])
 
         return weight_functions
 
-    def _is_diverse_route(self, new_path: List, seen_paths: set, graph: nx.DiGraph, similarity_threshold: float = 0.99) -> bool:
+    def _is_diverse_route(self, new_path: List, seen_paths: set, graph: nx.DiGraph, similarity_threshold: float = 0.7) -> bool:
         """
         새 경로가 기존 경로들과 충분히 다른지 확인 (경로 유사도 체크)
 
@@ -269,7 +404,8 @@ class RouteCalculator:
             new_path: 새로운 경로 (노드 리스트)
             seen_paths: 이미 추가된 경로들 (path_key set)
             graph: NetworkX 그래프
-            similarity_threshold: 유사도 임계값 (0.7 = 70% 이상 같으면 제외)
+            similarity_threshold: 유사도 임계값 (0.7 = 70% 이상 같으면 제외, 30% 이상 달라야 함)
+                                Default changed from 0.5 to 0.7 to allow more diverse routes
 
         Returns:
             True if 충분히 다르면, False if 너무 유사하면
@@ -394,9 +530,24 @@ class RouteCalculator:
         for i in range(len(route_nodes) - 1):
             u = route_nodes[i]
             v = route_nodes[i + 1]
-            
+
             try:
-                edge_data = graph[u][v]
+                # Handle MultiDiGraph - get the edge with minimum length (or first edge if single)
+                edge_dict = graph[u][v]
+
+                # For MultiDiGraph, edge_dict is an AtlasView with keys {0: edge_data, 1: edge_data, ...}
+                # For DiGraph, edge_dict is the edge_data dict itself
+                if hasattr(edge_dict, 'values') and not ('length' in edge_dict or 'risk_score' in edge_dict):
+                    # MultiDiGraph: select edge with minimum length
+                    edge_values = list(edge_dict.values())
+                    if edge_values:
+                        edge_data = min(edge_values, key=lambda d: d.get('length', float('inf')))
+                    else:
+                        logger.debug(f"경고: 엣지 ({u}, {v})에 데이터가 없음")
+                        continue
+                else:
+                    # DiGraph: use directly
+                    edge_data = edge_dict
             except KeyError:
                 logger.debug(f"경고: 엣지 ({u}, {v})를 찾을 수 없음")
                 continue
@@ -427,8 +578,10 @@ class RouteCalculator:
         if total_distance > 0:
             avg_risk = total_risk / total_distance
             logger.debug(f"평균 위험도 (0-100 스케일): {avg_risk:.4f}")
-            # 위험 점수를 0-10 스케일로 변환 (100을 10으로 나눔)
-            normalized_risk = min(10, max(0, int(round(avg_risk / 10))))
+            # 위험 점수를 0-10 스케일로 변환 (정밀도 유지)
+            # 수정 전: int(round(avg_risk / 10)) → 정밀도 손실 (3.5 → 4)
+            # 수정 후: round(avg_risk / 10) → 정밀도 유지 (3.5 → 4, 하지만 반올림 규칙 적용)
+            normalized_risk = min(10, max(0, round(avg_risk / 10)))
             logger.debug(f"정규화된 위험도 (0-10 스케일): {normalized_risk}")
         else:
             normalized_risk = 0

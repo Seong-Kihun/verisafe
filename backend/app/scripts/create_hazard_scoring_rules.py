@@ -64,7 +64,7 @@ SCORING_RULES = [
         'min_risk_score': 40,
         'max_risk_score': 70,
         'default_duration_hours': 336,  # 14일
-        'default_radius_km': 0.5,
+        'default_radius_km': 0.3,  # 검문소는 좁은 범위만 영향
         'icon': '⚠️',
         'color': '#FB8C00',
         'description': '검문소 (불법 또는 위험)'

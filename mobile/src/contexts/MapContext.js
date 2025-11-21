@@ -110,6 +110,13 @@ export function MapProvider({ children }) {
     setRouteResponseState(response);
   }, []);
 
+  // 경로 응답 초기화
+  const clearRouteResponse = useCallback(() => {
+    setRouteResponseState(null);
+    setRouteParams(null);
+    setIsRouteSheetOpen(false);
+  }, []);
+
   // 선택된 장소 초기화
   const clearSelectedPlace = useCallback(() => {
     setSelectedPlace(null);
@@ -157,6 +164,7 @@ export function MapProvider({ children }) {
     openRouteSheet,
     closeRouteSheet,
     setRouteResponse,
+    clearRouteResponse,
 
     // 기타
     clearSelectedPlace,

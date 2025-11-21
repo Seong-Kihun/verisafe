@@ -4,6 +4,8 @@ from typing import Optional, Dict, Any, List
 from datetime import datetime
 import uuid
 
+from app.utils.validators import validate_latitude, validate_longitude
+
 
 class GeoJSONGeometry(BaseModel):
     """GeoJSON Geometry"""
@@ -23,6 +25,18 @@ class DetectedFeatureBase(BaseModel):
     properties: Optional[Dict[str, Any]] = Field(None, description="추가 속성")
     geometry_type: Optional[str] = Field(None, description="Geometry 타입 (point, line, polygon)")
     geometry_data: Optional[Dict[str, Any]] = Field(None, description="GeoJSON 형태")
+
+    @field_validator('latitude')
+    @classmethod
+    def check_latitude(cls, v):
+        """위도 검증 (-90 ~ 90)"""
+        return validate_latitude(v)
+
+    @field_validator('longitude')
+    @classmethod
+    def check_longitude(cls, v):
+        """경도 검증 (-180 ~ 180)"""
+        return validate_longitude(v)
 
 
 class DetectedFeatureCreate(DetectedFeatureBase):

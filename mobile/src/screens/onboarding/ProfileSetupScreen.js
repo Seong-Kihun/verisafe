@@ -13,6 +13,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Typography, Spacing } from '../../styles';
 import { useOnboarding } from '../../contexts/OnboardingContext';
 import Icon from '../../components/icons/Icon';
@@ -32,11 +33,21 @@ export default function ProfileSetupScreen({ navigation }) {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={0}
-    >
+    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={0}
+      >
+        {/* 뒤로가기 버튼 */}
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
+        >
+          <Icon name="arrowBack" size={24} color={Colors.textPrimary} />
+        </TouchableOpacity>
+
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -109,14 +120,25 @@ export default function ProfileSetupScreen({ navigation }) {
           <Icon name="arrowForward" size={20} color={Colors.textInverse} />
         </TouchableOpacity>
       </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
     backgroundColor: Colors.background,
+  },
+  container: {
+    flex: 1,
+  },
+  backButton: {
+    position: 'absolute',
+    top: Spacing.md,
+    left: Spacing.lg,
+    zIndex: 10,
+    padding: Spacing.sm,
   },
   scrollView: {
     flex: 1,
@@ -126,7 +148,7 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing.xxxl,
+    paddingTop: Spacing.xxxl + Spacing.xl,
     paddingBottom: Spacing.xl,
     alignItems: 'center',
   },

@@ -37,6 +37,7 @@ export function RoutePlanningProvider({ children }) {
   // UI 상태
   const [isHazardBriefingOpen, setIsHazardBriefingOpen] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
+  const [shouldReopenBriefing, setShouldReopenBriefing] = useState(false);
 
   // 출발지 설정
   const setStart = useCallback((location) => {
@@ -80,6 +81,15 @@ export function RoutePlanningProvider({ children }) {
     setIsCalculating(calculating);
   }, []);
 
+  // 출발지/목적지 교환
+  const swapLocations = useCallback(() => {
+    const temp = startLocation;
+    setStartLocation(endLocation);
+    setEndLocation(temp);
+    setSelectedRoute(null); // 경로 초기화
+    setRoutes([]); // 경로 목록 초기화
+  }, [startLocation, endLocation]);
+
   // 초기화
   const reset = useCallback(() => {
     setStartLocation(null);
@@ -100,16 +110,19 @@ export function RoutePlanningProvider({ children }) {
     selectedRoute,
     isHazardBriefingOpen,
     isCalculating,
-    
+    shouldReopenBriefing,
+
     // 액션
     setStart,
     setEnd,
     setTransportation,
     setRoutesList,
     selectRoute,
+    swapLocations,
     openHazardBriefing,
     closeHazardBriefing,
     setCalculating,
+    setShouldReopenBriefing,
     reset,
   };
 
